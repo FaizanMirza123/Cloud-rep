@@ -1,393 +1,412 @@
-import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import {
-  Bot,
-  Phone,
-  BarChart3,
-  Users,
-  CheckCircle,
-  ArrowRight,
-  Star,
-  Play,
-} from "lucide-react";
+import React from 'react'; // REMOVED: useState is no longer needed
+import { Link } from 'react-router-dom';
+
+// Import Bootstrap CSS directly into this component
+import 'bootstrap/dist/css/bootstrap.min.css';
+
+// Import React-Bootstrap components
+import { Navbar, Nav, Button, Container, Row, Col, Accordion, Form } from 'react-bootstrap';
+
+// Import React-Bootstrap-Icons
+import { 
+    Cpu, MicFill, ChatDotsFill, GraphUpArrow, Headset, 
+    PersonRolodex, CalendarCheck, Funnel, CardChecklist, PersonLinesFill, CreditCard 
+} from 'react-bootstrap-icons';
+
+
+// This component holds all of your custom CSS.
+const Styles = () => (
+  <style>{`
+    body {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+        background-color: #f8f9fa;
+    }
+    .navbar-brand .brand-text {
+        font-weight: bold;
+        color: #0d6efd !important;
+    }
+    .hero-section {
+        padding: 100px 0;
+        text-align: center;
+        background-color: #fff;
+    }
+    .hero-section h1 {
+        font-size: 3.5rem;
+        font-weight: 700;
+    }
+    .hero-section .ai-powered {
+        color: #0d6efd;
+    }
+    .hero-section .btn {
+        padding: 12px 30px;
+        font-size: 1.1rem;
+    }
+    .section-padding {
+        padding: 80px 0;
+    }
+    .section-title {
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+    }
+    .section-title .highlight {
+        color: #0d6efd;
+    }
+    .feature-icon {
+        font-size: 2rem;
+        color: #0d6efd;
+    }
+    .live-demo-form {
+        background-color: #1a2035;
+        color: white;
+        padding: 2.5rem;
+        border-radius: 1rem;
+    }
+    
+    .agent-type-card {
+        background-color: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        font-weight: 500;
+        transition: all 0.25s ease-in-out;
+        text-decoration: none;
+        color: #343a40;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        cursor: pointer;
+    }
+
+    /* --- CSS FIX IS HERE --- */
+    /* This rule now ONLY applies on hover, not to an ".active" class */
+    .agent-type-card:hover {
+        border-color: #0d6efd;
+        color: #0d6efd;
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    }
+    /* --- END OF CSS FIX --- */
+
+    .agent-type-card .icon {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-number {
+        font-size: 4rem;
+        font-weight: 700;
+        color: #0d6efd;
+    }
+    .faq-accordion .accordion-button:not(.collapsed) {
+        background-color: #e7f1ff;
+        color: #0c63e4;
+        box-shadow: none;
+    }
+    .footer {
+        background-color: #1a2035;
+        color: #adb5bd;
+        padding-top: 5rem;
+        padding-bottom: 2rem;
+    }
+    .footer h5 {
+        color: #fff;
+        margin-bottom: 1rem;
+    }
+    .footer a {
+        color: #adb5bd;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+    .footer a:hover {
+        color: #fff;
+    }
+    .footer .list-unstyled li {
+        margin-bottom: 0.5rem;
+    }
+
+    /* --- Sliding Logo Animation --- */
+    .logo-slider {
+        overflow: hidden;
+        padding: 20px 0;
+        white-space: nowrap;
+        position: relative;
+    }
+    .logo-slider:before,
+    .logo-slider:after {
+        position: absolute;
+        top: 0;
+        width: 150px;
+        height: 100%;
+        content: "";
+        z-index: 2;
+    }
+    .logo-slider:before {
+        left: 0;
+        background: linear-gradient(to left, rgba(248,249,250,0), #f8f9fa);
+    }
+    .logo-slider:after {
+        right: 0;
+        background: linear-gradient(to right, rgba(248,249,250,0), #f8f9fa);
+    }
+    @keyframes slide {
+        from { transform: translateX(0); }
+        to { transform: translateX(-100%); }
+    }
+    
+    .logos-slide {
+        display: flex;
+        align-items: center;
+        animation: 25s slide infinite linear;
+    }
+
+    .logos-slide img {
+        height: 30px;
+        margin: 0 40px;
+        filter: grayscale(100%);
+        opacity: 0.6;
+        transition: opacity 0.2s;
+    }
+    .logos-slide img:hover {
+        opacity: 1;
+        filter: grayscale(0%);
+    }
+  `}</style>
+);
+
 
 const LandingPage = () => {
-  const [timeLeft, setTimeLeft] = useState({
-    days: 1,
-    hours: 17,
-    minutes: 43,
-    seconds: 8,
-  });
+  // REMOVED: The state that was making the button selection stick.
+  // const [selectedAgent, setSelectedAgent] = useState('Appointment Setter');
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setTimeLeft((prev) => {
-        let { days, hours, minutes, seconds } = prev;
-
-        if (seconds > 0) {
-          seconds--;
-        } else if (minutes > 0) {
-          minutes--;
-          seconds = 59;
-        } else if (hours > 0) {
-          hours--;
-          minutes = 59;
-          seconds = 59;
-        } else if (days > 0) {
-          days--;
-          hours = 23;
-          minutes = 59;
-          seconds = 59;
-        }
-
-        return { days, hours, minutes, seconds };
-      });
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
-
-  const features = [
-    {
-      icon: Phone,
-      title: "Operates 24/7 365",
-      description: "Your AI agents work around the clock without breaks",
-    },
-    {
-      icon: Bot,
-      title: "5-Minute Setup",
-      description: "Get your voice AI agent up and running in minutes",
-    },
-    {
-      icon: Users,
-      title: "Pre-configured Industry Templates",
-      description: "Ready-to-use templates for various business needs",
-    },
-    {
-      icon: BarChart3,
-      title: "Voice, SMS and Chatbot",
-      description: "Multi-channel communication in one platform",
-    },
+  const agentTypes = [
+    { icon: PersonRolodex, name: "Receptionist" },
+    { icon: CalendarCheck, name: "Appointment Setter" },
+    { icon: Funnel, name: "Lead Qualification" },
+    { icon: CardChecklist, name: "Survey" },
+    { icon: PersonLinesFill, name: "Customer Service" },
+    { icon: CreditCard, name: "Debt Collection" },
   ];
 
-  const additionalFeatures = [
-    "Live Call Analysis",
-    "Smart Call Routing",
-    "50+ Ways to Choose From",
-    "Supports Over 30 Languages",
+  const faqData = [
+    { eventKey: "0", title: "What is NexusAI?", body: "NexusAI is an all-in-one AI-powered communication platform that automates inbound and outbound customer interactions, including bookings, inquiries, lead generation, and customer support." },
+    { eventKey: "1", title: "Is NexusAI suitable for my industry?", body: "Yes, NexusAI offers tailored solutions for a wide range of industries including Healthcare, Legal Services, Government, and more. Our platform is flexible and can be customized to meet your specific business needs." },
+    { eventKey: "2", title: "How Secure is NexusAI?", body: "We prioritize data security and privacy. NexusAI is built with robust security measures, including end-to-end encryption and compliance with industry standards, to ensure your data is always protected." },
+    { eventKey: "3", title: "Can I customize NexusAI for my business?", body: "Absolutely. Customization is at the core of our platform. You can create custom AI agents, define specific workflows, integrate with your existing CRM, and tailor the entire experience to match your brand and operational needs." }
   ];
 
-  const testimonials = [
-    {
-      quote:
-        "A law office increased their sales intake by 35% within the first two weeks of using the system.",
-      author: "Legal Firm Client",
-    },
+  const partnerLogos = [
+    { src: "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4d/OpenAI_Logo.svg/1280px-OpenAI_Logo.svg.png", alt: "OpenAI" },
+    { src: "https://upload.wikimedia.org/wikipedia/commons/thumb/9/93/Amazon_Web_Services_Logo.svg/1280px-Amazon_Web_Services_Logo.svg.png", alt: "AWS" },
+    { src: "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Microsoft_Azure_Logo.svg/1280px-Microsoft_Azure_Logo.svg.png", alt: "Azure" },
+    { src: "https://upload.wikimedia.org/wikipedia/commons/thumb/7/7e/Twilio-logo-red.svg/1280px-Twilio-logo-red.svg.png", alt: "Twilio"},
   ];
+  
+  const duplicatedLogos = [...partnerLogos, ...partnerLogos];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center">
-              <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                <Bot className="w-5 h-5 text-white" />
+    <>
+      <Styles /> 
+      
+      {/* Navbar */}
+      <Navbar bg="white" expand="lg" className="sticky-top shadow-sm">
+        <Container>
+          <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
+            <Cpu className="me-2" color="#0d6efd" size={24} />
+            <span className="brand-text">NexusAI</span>
+          </Navbar.Brand>
+          <Navbar.Toggle aria-controls="main-navbar" />
+          <Navbar.Collapse id="main-navbar">
+            <Nav className="mx-auto">
+              <Nav.Link href="#solutions">Solutions</Nav.Link>
+              <Nav.Link href="#platform">Platform</Nav.Link>
+              <Nav.Link href="#company">Company</Nav.Link>
+            </Nav>
+            <Button as={Link} to="/register" variant="primary">Get Started</Button>
+          </Navbar.Collapse>
+        </Container>
+      </Navbar>
+
+      <main>
+        {/* Hero Section */}
+        <section className="hero-section">
+          <Container>
+            <Row className="justify-content-center">
+              <Col lg={10}>
+                <p className="text-primary fw-bold">NexusAI Agents Business Automation</p>
+                <h1 className="mb-4">Say Hello to Your Fully Automated <br /><span className="ai-powered">AI-Powered Workforce</span></h1>
+                <p className="lead text-muted mb-5">Deploy intelligent AI agents that work 24/7—handling customer interactions, managing tasks, and keeping your operations running seamlessly around the clock.</p>
+                <Button as={Link} to="/register" variant="primary" className="me-2">Get Started for Free</Button>
+                <Button variant="outline-dark">Schedule Demo</Button>
+              </Col>
+            </Row>
+          </Container>
+        </section>
+
+        {/* Partners Section */}
+        <section className="py-4 bg-light">
+          <Container>
+              <h6 className="text-muted text-center mb-4">Empowering Countless Businesses Worldwide</h6>
+          </Container>
+          <div className="logo-slider">
+              <div className="logos-slide">
+                  {duplicatedLogos.map((logo, index) => (
+                      <img key={index} src={logo.src} alt={logo.alt} />
+                  ))}
               </div>
-              <span className="ml-2 text-xl font-bold text-gray-900">
-                VoiceFlow
-              </span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link
-                to="/login"
-                className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium"
-              >
-                Log In
-              </Link>
-              <Link
-                to="/register"
-                className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-              >
-                Get Started
-              </Link>
-            </div>
           </div>
-        </div>
-      </header>
+        </section>
 
-      {/* Hero Section */}
-      <section className="pt-20 pb-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <h1 className="text-5xl font-bold text-gray-900 leading-tight">
-                Get <span className="text-yellow-400">$25 Free</span>
-                <br />
-                AI Calling Credits
-              </h1>
-              <p className="text-xl text-gray-600 mt-6 leading-relaxed">
-                Test drive our AI agents with $25 in free calling credits. Book
-                appointments, qualify leads, and handle customer service while
-                you sleep. Setup takes 5 minutes.
-              </p>
+        {/* Transform Interactions Section */}
+        <section className="section-padding bg-white">
+            <Container>
+                <Row className="align-items-center">
+                    <Col lg={6}>
+                        <img src="https://www.cloudrep.ai/wp-content/uploads/2025/03/OAIR-Active-Communication-Channels.png" className="img-fluid rounded-3" alt="Dashboard UI" />
+                    </Col>
+                    <Col lg={6} className="ps-lg-5 mt-4 mt-lg-0">
+                        <h2 className="section-title">Transform Your <span className="highlight">Customer Interactions</span></h2>
+                        <p className="text-muted mb-5">Quickly build custom Agents, hire ready-to-use Agents from our Marketplace, or upgrade your existing Agents with pre-configured jobs.</p>
+                        <Row>
+                            <Col md={6} className="mb-4 d-flex"><MicFill className="feature-icon me-3 flex-shrink-0" /><div><h5>Live Voice Agents</h5><p className="text-muted small">Deploy intelligent virtual assistants that comprehend and empathetically respond to human speech.</p></div></Col>
+                            <Col md={6} className="mb-4 d-flex"><ChatDotsFill className="feature-icon me-3 flex-shrink-0" /><div><h5>Live Chat & SMS</h5><p className="text-muted small">Implement conversational AI to manage real-time chats across multiple platforms.</p></div></Col>
+                            <Col md={6} className="mb-4 d-flex"><GraphUpArrow className="feature-icon me-3 flex-shrink-0" /><div><h5>AI Sales & Marketing</h5><p className="text-muted small">Utilize AI to engage, qualify, and nurture leads, automating sales processes.</p></div></Col>
+                            <Col md={6} className="mb-4 d-flex"><Headset className="feature-icon me-3 flex-shrink-0" /><div><h5>AI Agent Assist</h5><p className="text-muted small">Enhance human agent performance with AI tools offering real-time insights.</p></div></Col>
+                        </Row>
+                    </Col>
+                </Row>
+            </Container>
+        </section>
 
-              {/* Features Grid */}
-              <div className="grid grid-cols-2 gap-4 mt-8">
-                {features.map((feature, index) => {
-                  const Icon = feature.icon;
-                  return (
-                    <div key={index} className="flex items-start space-x-3">
-                      <div className="bg-blue-100 p-2 rounded-lg">
-                        <Icon className="w-5 h-5 text-blue-600" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-gray-900 text-sm">
-                          {feature.title}
-                        </h3>
-                        <p className="text-gray-600 text-xs mt-1">
-                          {feature.description}
-                        </p>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Additional Features */}
-              <div className="mt-8 space-y-2">
-                {additionalFeatures.map((feature, index) => (
-                  <div key={index} className="flex items-center space-x-2">
-                    <div className="bg-blue-100 p-1 rounded">
-                      <CheckCircle className="w-4 h-4 text-blue-600" />
-                    </div>
-                    <span className="text-sm text-gray-700">{feature}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Registration Form */}
-            <div className="bg-white rounded-xl shadow-xl p-8">
-              <div className="text-center mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Register Now
-                </h2>
-                <div className="flex justify-center space-x-4 mt-4 text-center">
-                  <div>
-                    <div className="text-2xl font-bold text-red-600">
-                      {timeLeft.days.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-xs text-gray-500">days</div>
-                  </div>
-                  <div className="text-2xl font-bold text-gray-400">:</div>
-                  <div>
-                    <div className="text-2xl font-bold text-red-600">
-                      {timeLeft.hours.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-xs text-gray-500">hours</div>
-                  </div>
-                  <div className="text-2xl font-bold text-gray-400">:</div>
-                  <div>
-                    <div className="text-2xl font-bold text-red-600">
-                      {timeLeft.minutes.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-xs text-gray-500">mins</div>
-                  </div>
-                  <div className="text-2xl font-bold text-gray-400">:</div>
-                  <div>
-                    <div className="text-2xl font-bold text-red-600">
-                      {timeLeft.seconds.toString().padStart(2, "0")}
-                    </div>
-                    <div className="text-xs text-gray-500">sec</div>
-                  </div>
+        {/* Live Demo Section */}
+        <section className="section-padding bg-light">
+            <Container>
+                <div className="text-center mb-5">
+                    <h2 className="section-title">Try Our Live <span className="highlight">AI Voice Agent</span> Demo</h2>
+                    <p className="text-muted">Please select which type of call you would like to receive, fill out the form and our Agent will give you a call.</p>
                 </div>
-              </div>
+                <Row className="align-items-center">
+                    <Col lg={4}>
+                        <div className="live-demo-form">
+                            <h4 className="mb-4">Receive a live call from our agent</h4>
+                            <Form>
+                                <Form.Group className="mb-3"><Form.Control type="text" placeholder="Name" /></Form.Group>
+                                <Form.Group className="mb-3"><Form.Control type="email" placeholder="Email" /></Form.Group>
+                                <Form.Group className="mb-3"><Form.Control type="tel" placeholder="123-456-7890" /></Form.Group>
+                                <div className="d-grid"><Button type="submit" variant="primary">Get a Call</Button></div>
+                            </Form>
+                        </div>
+                    </Col>
+                    <Col lg={8} className="ps-lg-5 mt-4 mt-lg-0">
+                        <Row xs={2} md={3} className="g-4">
+                            {agentTypes.map(agent => {
+                                const AgentIcon = agent.icon;
+                                // REMOVED: The logic that checked for an active state
+                                return (
+                                <Col key={agent.name}>
+                                    {/* CHANGED: Removed the onClick and the conditional className */}
+                                    <div className="agent-type-card">
+                                        <AgentIcon className="icon" />
+                                        <span>{agent.name}</span>
+                                    </div>
+                                </Col>
+                                );
+                            })}
+                        </Row>
+                    </Col>
+                </Row>
+            </Container>
+        </section>
 
-              <button className="w-full bg-gray-100 text-gray-600 py-3 rounded-lg mb-4 border flex items-center justify-center space-x-2">
-                <svg className="w-5 h-5" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                <span>Continue with Google</span>
-              </button>
+        {/* Knowledge Base Section */}
+        <section className="section-padding bg-white">
+            <Container>
+                <Row className="align-items-center">
+                    <Col lg={6}>
+                        <h2 className="section-title">Simple <span className="highlight">Knowledge Base</span> Sync Technology</h2>
+                        <p className="text-muted mb-5">At NexusAI, our simplified knowledge base sync serves as the cornerstone for training all AI agents, ensuring rapid deployment and consistent performance across your organization.</p>
+                        <Row>
+                            <Col md={6}>
+                                <h3 className="stat-number">70%</h3>
+                                <h5>Accelerate Deployment</h5>
+                                <p className="text-muted">By centralizing your company's information, our platform reduces the time required to train and deploy AI agents.</p>
+                            </Col>
+                            <Col md={6}>
+                                <h3 className="stat-number">47%</h3>
+                                <h5>Enhance Consistency</h5>
+                                <p className="text-muted">A unified knowledge base minimizes discrepancies and ensures that all AI agents operate with the same up-to-date information.</p>
+                            </Col>
+                        </Row>
+                    </Col>
+                    <Col lg={6} className="mt-4 mt-lg-0">
+                        <img src="https://www.cloudrep.ai/wp-content/uploads/2025/02/OAir-2.png" className="img-fluid rounded-3" alt="Agent Settings UI" />
+                    </Col>
+                </Row>
+            </Container>
+        </section>
 
-              <div className="text-center text-gray-500 mb-4">or</div>
+        {/* FAQ Section */}
+        <section className="section-padding bg-light">
+            <Container>
+                <Row>
+                    <Col lg={4}>
+                        <h2 className="section-title">Frequently asked questions</h2>
+                        <p className="text-muted">Couldn't find what you looking for? Write to us at <a href="mailto:sales@nexusai.com">sales@nexusai.com</a></p>
+                    </Col>
+                    <Col lg={8}>
+                        <Accordion defaultActiveKey="0" className="faq-accordion">
+                          {faqData.map(faq => (
+                            <Accordion.Item eventKey={faq.eventKey} key={faq.eventKey} className="mb-2">
+                              <Accordion.Header>{faq.title}</Accordion.Header>
+                              <Accordion.Body className="text-muted">{faq.body}</Accordion.Body>
+                            </Accordion.Item>
+                          ))}
+                        </Accordion>
+                    </Col>
+                </Row>
+            </Container>
+        </section>
 
-              <form className="space-y-4">
-                <input
-                  type="text"
-                  placeholder="Full Name"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <input
-                  type="email"
-                  placeholder="Email"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  defaultValue="sana@shiftgroup.ca"
-                />
-                <div className="flex">
-                  <select className="px-3 py-3 border border-gray-300 rounded-l-lg bg-gray-50">
-                    <option value="+1">🇺🇸 +1</option>
-                  </select>
-                  <input
-                    type="tel"
-                    placeholder="Phone Number"
-                    className="flex-1 px-4 py-3 border border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                <input
-                  type="password"
-                  placeholder="Password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <input
-                  type="password"
-                  placeholder="Confirm Password"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <label className="flex items-center space-x-2">
-                  <input type="checkbox" className="rounded" />
-                  <span className="text-sm text-gray-600">
-                    I agree to the{" "}
-                    <a href="#" className="text-blue-600 hover:underline">
-                      Terms and Conditions
-                    </a>
-                  </span>
-                </label>
-                <Link
-                  to="/register"
-                  className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition duration-200 flex items-center justify-center"
-                >
-                  Register
-                </Link>
-              </form>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonial Section */}
-      <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <div className="bg-blue-50 rounded-lg p-8 inline-block">
-            <blockquote className="text-lg text-gray-700 italic">
-              "{testimonials[0].quote}"
-            </blockquote>
-          </div>
-        </div>
-      </section>
-
-      {/* Demo Section */}
-      <section className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h2 className="text-3xl font-bold text-gray-900 mb-8">
-            Try Our Live 📞 Voice Agent Demo
-          </h2>
-          <button className="bg-blue-600 text-white px-8 py-4 rounded-lg text-lg font-semibold hover:bg-blue-700 transition duration-200 flex items-center space-x-2 mx-auto">
-            <Play className="w-5 h-5" />
-            <span>Start Demo Call</span>
-          </button>
-        </div>
-      </section>
+        {/* Final CTA */}
+        <section className="section-padding bg-white text-center">
+            <Container>
+                <h2 className="section-title">Time to hire your <span className="highlight">AI-Powered workforce</span></h2>
+                <p className="text-muted mb-4">Upgrade your business operations with NexusAI.</p>
+                <Button as={Link} to="/register" variant="primary" className="me-2">Get Started for Free</Button>
+                <Button variant="outline-dark">Schedule Demo</Button>
+            </Container>
+        </section>
+      </main>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="flex items-center mb-4">
-                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <Bot className="w-5 h-5 text-white" />
+      <footer className="footer">
+        <Container>
+          <Row className="mb-5">
+            <Col lg={4} className="mb-4 mb-lg-0">
+                <div className="d-flex align-items-center fs-4 mb-3">
+                    <Cpu className="me-2" />
+                    <span className="navbar-brand">NexusAI</span>
                 </div>
-                <span className="ml-2 text-xl font-bold">VoiceFlow</span>
+                <p>Unlock the power of automated customer interactions with NexusAI. Get started for free today and experience seamless communication, increased efficiency, and real-time results.</p>
+            </Col>
+            <Col lg={2} xs={6}><h5>Solutions</h5><Nav className="flex-column"><Nav.Link className="p-0 mb-2" href="#">AI Voice Agents</Nav.Link><Nav.Link className="p-0 mb-2" href="#">Chats & Messaging</Nav.Link></Nav></Col>
+            <Col lg={2} xs={6}><h5>Platform</h5><Nav className="flex-column"><Nav.Link className="p-0 mb-2" href="#">AI Agent Manager</Nav.Link><Nav.Link className="p-0 mb-2" href="#">Voice Gateway</Nav.Link></Nav></Col>
+            <Col lg={2} xs={6}><h5>Resources</h5><Nav className="flex-column"><Nav.Link className="p-0 mb-2" href="#">Help Center</Nav.Link><Nav.Link className="p-0 mb-2" href="#">Success Stories</Nav.Link></Nav></Col>
+            <Col lg={2} xs={6}><h5>Company</h5><Nav className="flex-column"><Nav.Link className="p-0 mb-2" href="#">About NexusAI</Nav.Link><Nav.Link className="p-0 mb-2" href="#">Events</Nav.Link></Nav></Col>
+          </Row>
+          <hr style={{ borderColor: '#343a40' }} />
+          <div className="d-md-flex justify-content-between pt-3">
+              <p className="mb-2 mb-md-0">© {new Date().getFullYear()} NexusAI. All rights reserved.</p>
+              <div>
+                  <a href="#" className="me-3">Terms of Service</a>
+                  <a href="#">Privacy Policy</a>
               </div>
-              <p className="text-gray-400">
-                Transform your business with AI-powered voice agents.
-              </p>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Product</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Features
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Pricing
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Demo
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Support</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Documentation
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Help Center
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Contact
-                  </a>
-                </li>
-              </ul>
-            </div>
-            <div>
-              <h3 className="font-semibold mb-4">Company</h3>
-              <ul className="space-y-2 text-gray-400">
-                <li>
-                  <a href="#" className="hover:text-white">
-                    About
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a href="#" className="hover:text-white">
-                    Careers
-                  </a>
-                </li>
-              </ul>
-            </div>
           </div>
-          <div className="border-t border-gray-800 mt-12 pt-8 text-center text-gray-400">
-            <p>&copy; 2025 VoiceFlow. All rights reserved.</p>
-          </div>
-        </div>
+        </Container>
       </footer>
-    </div>
+    </>
   );
 };
 
