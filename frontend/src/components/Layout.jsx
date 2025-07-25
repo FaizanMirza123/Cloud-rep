@@ -12,6 +12,11 @@ import {
   Menu,
   X,
   Bell,
+  PhoneCall,
+  Clock,
+  Mic,
+  PhoneOff,
+  Archive,
 } from "lucide-react";
 
 const Layout = ({ children }) => {
@@ -29,6 +34,18 @@ const Layout = ({ children }) => {
     { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
     { name: "Agents", href: "/agents", icon: Bot },
     { name: "Phone Numbers", href: "/phone-numbers", icon: Phone },
+    {
+      name: "Telephony",
+      href: "#",
+      icon: PhoneCall,
+      children: [
+        { name: "Active Calls", href: "/calls/active", icon: PhoneCall },
+        { name: "Call Queues", href: "/calls/queues", icon: Clock },
+        { name: "Recordings", href: "/calls/recordings", icon: Mic },
+        { name: "Missed Calls", href: "/calls/missed", icon: PhoneOff },
+        { name: "Post-Call", href: "/calls/post-call", icon: Archive },
+      ],
+    },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },
   ];
 
@@ -72,6 +89,62 @@ const Layout = ({ children }) => {
             {navigation.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.href;
+              const hasChildren = item.children && item.children.length > 0;
+              const isChildActive =
+                hasChildren &&
+                item.children.some((child) => location.pathname === child.href);
+
+              if (hasChildren) {
+                return (
+                  <div key={item.name} className="mb-2">
+                    <div
+                      className={`group flex items-center px-3 py-2 text-sm font-medium rounded-md ${
+                        isChildActive
+                          ? "bg-blue-50 text-blue-700"
+                          : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                      }`}
+                    >
+                      <Icon
+                        className={`mr-3 h-5 w-5 ${
+                          isChildActive
+                            ? "text-blue-700"
+                            : "text-gray-400 group-hover:text-gray-500"
+                        }`}
+                      />
+                      {item.name}
+                    </div>
+                    <div className="ml-6 mt-1 space-y-1">
+                      {item.children.map((child) => {
+                        const ChildIcon = child.icon;
+                        const isChildItemActive =
+                          location.pathname === child.href;
+
+                        return (
+                          <Link
+                            key={child.name}
+                            to={child.href}
+                            className={`group flex items-center px-3 py-2 text-xs font-medium rounded-md ${
+                              isChildItemActive
+                                ? "bg-blue-100 text-blue-800 border-r-2 border-blue-700"
+                                : "text-gray-500 hover:bg-gray-50 hover:text-gray-700"
+                            }`}
+                            onClick={() => setSidebarOpen(false)}
+                          >
+                            <ChildIcon
+                              className={`mr-3 h-4 w-4 ${
+                                isChildItemActive
+                                  ? "text-blue-800"
+                                  : "text-gray-400 group-hover:text-gray-500"
+                              }`}
+                            />
+                            {child.name}
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <Link
