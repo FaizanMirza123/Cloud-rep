@@ -35,9 +35,9 @@ const Layout = ({ children }) => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
 
@@ -215,7 +215,7 @@ const Layout = ({ children }) => {
               </button>
 
               <div className="relative" ref={userMenuRef}>
-                <button 
+                <button
                   onClick={() => setUserMenuOpen(!userMenuOpen)}
                   className="flex items-center space-x-2 p-2 rounded-md text-sm text-gray-700 hover:bg-gray-100"
                 >
