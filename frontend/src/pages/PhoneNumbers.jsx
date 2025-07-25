@@ -17,7 +17,8 @@ import {
 } from "lucide-react";
 
 const PhoneNumbers = () => {
-  const { phoneNumbers, loading, error, refreshData, deletePhoneNumber } = usePhoneNumbers();
+  const { phoneNumbers, loading, error, refreshData, deletePhoneNumber } =
+    usePhoneNumbers();
   const [searchTerm, setSearchTerm] = useState("");
   const [filterProvider, setFilterProvider] = useState("all");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -101,7 +102,7 @@ const PhoneNumbers = () => {
       try {
         await deletePhoneNumber(numberId);
       } catch (error) {
-        alert('Failed to delete phone number: ' + error.message);
+        alert("Failed to delete phone number: " + error.message);
       }
     }
   };

@@ -31,16 +31,16 @@ import {
 const Analytics = () => {
   const [timeRange, setTimeRange] = useState("7d");
   const [selectedMetric, setSelectedMetric] = useState("calls");
-  const { 
-    stats, 
-    callVolumeData, 
-    callEndReasons, 
-    agentPerformance, 
-    costBreakdown, 
-    loading, 
-    error, 
-    refreshData, 
-    exportData 
+  const {
+    stats,
+    callVolumeData,
+    callEndReasons,
+    agentPerformance,
+    costBreakdown,
+    loading,
+    error,
+    refreshData,
+    exportData,
   } = useAnalytics(timeRange);
 
   // Create stats cards from API data
@@ -49,7 +49,12 @@ const Analytics = () => {
       title: "Total Calls",
       value: stats.totalCalls?.toString() || "0",
       change: `${stats.successRate?.toFixed(1) || 0}% success rate`,
-      trend: stats.successRate > 80 ? "up" : stats.successRate > 60 ? "neutral" : "down",
+      trend:
+        stats.successRate > 80
+          ? "up"
+          : stats.successRate > 60
+          ? "neutral"
+          : "down",
       icon: Phone,
       color: "blue",
     },
@@ -156,7 +161,7 @@ const Analytics = () => {
             <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
             <span>Refresh</span>
           </button>
-          <button 
+          <button
             onClick={exportData}
             className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 flex items-center space-x-2"
           >
@@ -331,7 +336,10 @@ const Analytics = () => {
                           <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
                             <Users className="w-4 h-4 text-blue-600" />
                           </div>
-                          <span className="text-sm font-medium text-gray-900 truncate max-w-32" title={agent.name}>
+                          <span
+                            className="text-sm font-medium text-gray-900 truncate max-w-32"
+                            title={agent.name}
+                          >
                             {agent.name}
                           </span>
                         </div>
