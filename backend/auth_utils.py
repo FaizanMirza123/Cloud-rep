@@ -125,7 +125,7 @@ class EmailService:
         """Send email using SMTP"""
         try:
             msg = MIMEMultipart()
-            msg['From'] = self.from_email
+            msg['From'] = 'faizanmirza4587@gmail.com'
             msg['To'] = to_email
             msg['Subject'] = subject
             

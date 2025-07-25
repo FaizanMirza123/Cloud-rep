@@ -206,12 +206,25 @@ export const AuthProvider = ({ children }) => {
     [user]
   );
 
-  const logout = useCallback(() => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    delete axios.defaults.headers.common["Authorization"];
-    setUser(null);
-    toast.success("Logged out successfully!");
+  const logout = useCallback(async () => {
+    try {
+      console.log("Starting logout process...");
+      // Call backend logout endpoint
+      await axios.post("/auth/logout");
+      console.log("Backend logout successful");
+    } catch (error) {
+      // Continue with logout even if backend call fails
+      console.error("Backend logout failed:", error);
+    } finally {
+      // Always clear local storage and state
+      console.log("Clearing local storage and state...");
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      delete axios.defaults.headers.common["Authorization"];
+      setUser(null);
+      console.log("Logout cleanup completed");
+      toast.success("Logged out successfully!");
+    }
   }, []);
 
   const value = useMemo(

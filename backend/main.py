@@ -18,7 +18,7 @@ from database import get_db, create_tables, User, Agent, PhoneNumber, Call
 from auth_utils import AuthUtils, EmailService, GoogleAuth
 
 # Environment variables
-VAPI_API_KEY = os.getenv("VAPI_API_KEY", "")
+VAPI_API_KEY = "b53d60fd-f374-4af6-b586-3d2ff3463efa"
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-this-in-production")
 VAPI_BASE_URL = "https://api.vapi.ai"
 
@@ -356,6 +356,11 @@ async def verify_email(request: VerifyEmailRequest, db: Session = Depends(get_db
     db.commit()
     
     return {"message": "Email verified successfully"}
+
+@app.post("/auth/logout")
+async def logout(current_user: User = Depends(get_current_user)):
+    """Logout user (client-side token invalidation)"""
+    return {"message": "Logged out successfully", "user": current_user.name}
 
 # Agent routes
 @app.get("/agents")
