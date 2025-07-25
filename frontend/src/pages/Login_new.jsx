@@ -2,14 +2,18 @@ import React, { useState } from "react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { Bot, Eye, EyeOff, Mail, Lock, AlertCircle } from "lucide-react";
-import { PageTransition, LoadingSpinner, ButtonHover } from "../components/AnimationComponents";
+import {
+  PageTransition,
+  LoadingSpinner,
+  ButtonHover,
+} from "../components/AnimationComponents";
 import { validateEmail } from "../utils/validation";
 import toast from "react-hot-toast";
 
 const Login = () => {
   const [formData, setFormData] = useState({
     email: "",
-    password: ""
+    password: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -18,42 +22,42 @@ const Login = () => {
   const { login, googleAuth } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  
+
   const from = location.state?.from?.pathname || "/dashboard";
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-    
+    setFormData((prev) => ({ ...prev, [name]: value }));
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     const emailValidation = validateEmail(formData.email);
     if (!emailValidation.isValid) {
       newErrors.email = emailValidation.error;
     }
-    
+
     if (!formData.password) {
       newErrors.password = "Password is required";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
 
     const result = await login(formData.email, formData.password);
@@ -70,7 +74,7 @@ const Login = () => {
       // This would integrate with Google OAuth
       // For now, we'll show a placeholder
       toast.error("Google OAuth integration coming soon!");
-      
+
       // Example of how it would work:
       /*
       window.gapi.load('auth2', () => {
@@ -101,7 +105,7 @@ const Login = () => {
             <Bot className="w-9 h-9 text-white" />
           </div>
         </div>
-        
+
         <h2 className="mt-6 text-center text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           Welcome Back
         </h2>
@@ -115,7 +119,10 @@ const Login = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Email Address
               </label>
               <div className="relative">
@@ -131,7 +138,7 @@ const Login = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-3 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
+                    errors.email ? "border-red-300" : "border-gray-300"
                   } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                   placeholder="Enter your email"
                 />
@@ -148,7 +155,10 @@ const Login = () => {
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -164,7 +174,7 @@ const Login = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-10 py-3 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
+                    errors.password ? "border-red-300" : "border-gray-300"
                   } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                   placeholder="Enter your password"
                 />
@@ -194,7 +204,10 @@ const Login = () => {
                   type="checkbox"
                   className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-700">
+                <label
+                  htmlFor="remember-me"
+                  className="ml-2 block text-sm text-gray-700"
+                >
                   Remember me
                 </label>
               </div>
@@ -216,11 +229,7 @@ const Login = () => {
                 disabled={loading}
                 className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-lg text-white bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
               >
-                {loading ? (
-                  <LoadingSpinner size="small" text="" />
-                ) : (
-                  "Sign In"
-                )}
+                {loading ? <LoadingSpinner size="small" text="" /> : "Sign In"}
               </ButtonHover>
             </div>
 
@@ -230,7 +239,9 @@ const Login = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                <span className="px-2 bg-white text-gray-500">
+                  Or continue with
+                </span>
               </div>
             </div>
 

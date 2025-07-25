@@ -1,9 +1,29 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
-import { Bot, Eye, EyeOff, Mail, Lock, User, Phone, AlertCircle, Check } from "lucide-react";
-import { PageTransition, LoadingSpinner, ButtonHover } from "../components/AnimationComponents";
-import { validateEmail, validatePassword, validatePhoneNumber, getPasswordStrength, formatPhoneNumber } from "../utils/validation";
+import {
+  Bot,
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  Phone,
+  AlertCircle,
+  Check,
+} from "lucide-react";
+import {
+  PageTransition,
+  LoadingSpinner,
+  ButtonHover,
+} from "../components/AnimationComponents";
+import {
+  validateEmail,
+  validatePassword,
+  validatePhoneNumber,
+  getPasswordStrength,
+  formatPhoneNumber,
+} from "../utils/validation";
 import toast from "react-hot-toast";
 
 const Register = () => {
@@ -12,7 +32,7 @@ const Register = () => {
     email: "",
     phone: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
   });
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -32,11 +52,11 @@ const Register = () => {
       processedValue = formatPhoneNumber(value);
     }
 
-    setFormData(prev => ({ ...prev, [name]: processedValue }));
-    
+    setFormData((prev) => ({ ...prev, [name]: processedValue }));
+
     // Clear error when user starts typing
     if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: "" }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
 
     // Update password strength in real-time
@@ -47,43 +67,43 @@ const Register = () => {
 
   const validateForm = () => {
     const newErrors = {};
-    
+
     if (!formData.name.trim()) {
       newErrors.name = "Name is required";
     }
-    
+
     const emailValidation = validateEmail(formData.email);
     if (!emailValidation.isValid) {
       newErrors.email = emailValidation.error;
     }
-    
+
     if (formData.phone) {
       const phoneValidation = validatePhoneNumber(formData.phone);
       if (!phoneValidation.isValid) {
         newErrors.phone = phoneValidation.error;
       }
     }
-    
+
     const passwordValidation = validatePassword(formData.password);
     if (!passwordValidation.isValid) {
       newErrors.password = passwordValidation.errors[0]; // Show first error
     }
-    
+
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
       return;
     }
-    
+
     setLoading(true);
 
     const { confirmPassword, ...registrationData } = formData;
@@ -111,15 +131,22 @@ const Register = () => {
       <div className="mt-2">
         <div className="flex justify-between text-xs mb-1">
           <span className="text-gray-500">Password strength</span>
-          <span className={passwordStrength.color}>{passwordStrength.strength}</span>
+          <span className={passwordStrength.color}>
+            {passwordStrength.strength}
+          </span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all duration-300 ${
-              passwordStrength.percentage <= 20 ? 'bg-red-500' :
-              passwordStrength.percentage <= 40 ? 'bg-yellow-500' :
-              passwordStrength.percentage <= 60 ? 'bg-yellow-400' :
-              passwordStrength.percentage <= 80 ? 'bg-green-500' : 'bg-green-600'
+              passwordStrength.percentage <= 20
+                ? "bg-red-500"
+                : passwordStrength.percentage <= 40
+                ? "bg-yellow-500"
+                : passwordStrength.percentage <= 60
+                ? "bg-yellow-400"
+                : passwordStrength.percentage <= 80
+                ? "bg-green-500"
+                : "bg-green-600"
             }`}
             style={{ width: `${passwordStrength.percentage}%` }}
           />
@@ -136,7 +163,7 @@ const Register = () => {
             <Bot className="w-9 h-9 text-white" />
           </div>
         </div>
-        
+
         <h2 className="mt-6 text-center text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
           Create Account
         </h2>
@@ -150,7 +177,10 @@ const Register = () => {
           <form className="space-y-6" onSubmit={handleSubmit}>
             {/* Name Field */}
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Full Name
               </label>
               <div className="relative">
@@ -166,7 +196,7 @@ const Register = () => {
                   value={formData.name}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-3 border ${
-                    errors.name ? 'border-red-300' : 'border-gray-300'
+                    errors.name ? "border-red-300" : "border-gray-300"
                   } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                   placeholder="Enter your full name"
                 />
@@ -183,7 +213,10 @@ const Register = () => {
 
             {/* Email Field */}
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Email Address
               </label>
               <div className="relative">
@@ -199,7 +232,7 @@ const Register = () => {
                   value={formData.email}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-3 border ${
-                    errors.email ? 'border-red-300' : 'border-gray-300'
+                    errors.email ? "border-red-300" : "border-gray-300"
                   } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                   placeholder="Enter your email"
                 />
@@ -216,7 +249,10 @@ const Register = () => {
 
             {/* Phone Field */}
             <div>
-              <label htmlFor="phone" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="phone"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Phone Number <span className="text-gray-400">(Optional)</span>
               </label>
               <div className="relative">
@@ -231,7 +267,7 @@ const Register = () => {
                   value={formData.phone}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-3 py-3 border ${
-                    errors.phone ? 'border-red-300' : 'border-gray-300'
+                    errors.phone ? "border-red-300" : "border-gray-300"
                   } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                   placeholder="Enter your phone number"
                 />
@@ -245,13 +281,18 @@ const Register = () => {
                 <p className="mt-2 text-sm text-red-600">{errors.phone}</p>
               )}
               {!errors.phone && formData.phone && (
-                <p className="mt-2 text-sm text-gray-500">International format accepted</p>
+                <p className="mt-2 text-sm text-gray-500">
+                  International format accepted
+                </p>
               )}
             </div>
 
             {/* Password Field */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Password
               </label>
               <div className="relative">
@@ -267,7 +308,7 @@ const Register = () => {
                   value={formData.password}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-10 py-3 border ${
-                    errors.password ? 'border-red-300' : 'border-gray-300'
+                    errors.password ? "border-red-300" : "border-gray-300"
                   } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                   placeholder="Create a strong password"
                 />
@@ -290,15 +331,33 @@ const Register = () => {
               <div className="mt-2 text-xs text-gray-500">
                 <div className="grid grid-cols-1 gap-1">
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${formData.password.length >= 8 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        formData.password.length >= 8
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }`}
+                    />
                     <span>At least 8 characters</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${/[A-Z]/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        /[A-Z]/.test(formData.password)
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }`}
+                    />
                     <span>One uppercase letter</span>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <div className={`w-2 h-2 rounded-full ${/[!@#$%^&*(),.?":{}|<>]/.test(formData.password) ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <div
+                      className={`w-2 h-2 rounded-full ${
+                        /[!@#$%^&*(),.?":{}|<>]/.test(formData.password)
+                          ? "bg-green-500"
+                          : "bg-gray-300"
+                      }`}
+                    />
                     <span>One special character</span>
                   </div>
                 </div>
@@ -307,7 +366,10 @@ const Register = () => {
 
             {/* Confirm Password Field */}
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-2">
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
                 Confirm Password
               </label>
               <div className="relative">
@@ -323,7 +385,9 @@ const Register = () => {
                   value={formData.confirmPassword}
                   onChange={handleInputChange}
                   className={`appearance-none block w-full pl-10 pr-10 py-3 border ${
-                    errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                    errors.confirmPassword
+                      ? "border-red-300"
+                      : "border-gray-300"
                   } rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200`}
                   placeholder="Confirm your password"
                 />
@@ -338,14 +402,17 @@ const Register = () => {
                     <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                   )}
                 </button>
-                {formData.confirmPassword && formData.password === formData.confirmPassword && (
-                  <div className="absolute inset-y-0 right-8 pr-3 flex items-center">
-                    <Check className="h-5 w-5 text-green-500" />
-                  </div>
-                )}
+                {formData.confirmPassword &&
+                  formData.password === formData.confirmPassword && (
+                    <div className="absolute inset-y-0 right-8 pr-3 flex items-center">
+                      <Check className="h-5 w-5 text-green-500" />
+                    </div>
+                  )}
               </div>
               {errors.confirmPassword && (
-                <p className="mt-2 text-sm text-red-600">{errors.confirmPassword}</p>
+                <p className="mt-2 text-sm text-red-600">
+                  {errors.confirmPassword}
+                </p>
               )}
             </div>
 
@@ -395,7 +462,9 @@ const Register = () => {
                 <div className="w-full border-t border-gray-300" />
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or register with</span>
+                <span className="px-2 bg-white text-gray-500">
+                  Or register with
+                </span>
               </div>
             </div>
 

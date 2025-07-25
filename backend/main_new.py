@@ -95,10 +95,8 @@ class AgentUpdate(BaseModel):
 
 class PhoneNumberCreate(BaseModel):
     name: str
-    country: str = "US"
     areaCode: Optional[str] = None
-    dialCode: Optional[str] = None
-    provider: str = "byo-phone-number"
+    provider: str = "vapi"
 
 class CallCreate(BaseModel):
     customer_number: str
@@ -134,7 +132,6 @@ def get_current_user(user_email: str = Depends(verify_token), db: Session = Depe
 async def call_vapi_api(endpoint: str, method: str = "GET", data: dict = None):
     """Helper function to make calls to VAPI API"""
     if not VAPI_API_KEY:
-        print("WARNING: VAPI_API_KEY not configured")
         raise HTTPException(status_code=500, detail="VAPI API key not configured")
     
     headers = {
@@ -145,42 +142,23 @@ async def call_vapi_api(endpoint: str, method: str = "GET", data: dict = None):
     async with httpx.AsyncClient() as client:
         url = f"{VAPI_BASE_URL}{endpoint}"
         
-        print(f"VAPI API Call: {method} {url}")  # Debug logging
-        if data:
-            print(f"VAPI Payload: {data}")  # Debug logging
+        if method == "GET":
+            response = await client.get(url, headers=headers)
+        elif method == "POST":
+            response = await client.post(url, headers=headers, json=data)
+        elif method == "PUT":
+            response = await client.put(url, headers=headers, json=data)
+        elif method == "PATCH":
+            response = await client.patch(url, headers=headers, json=data)
+        elif method == "DELETE":
+            response = await client.delete(url, headers=headers)
+        else:
+            raise HTTPException(status_code=400, detail="Invalid HTTP method")
         
-        try:
-            if method == "GET":
-                response = await client.get(url, headers=headers)
-            elif method == "POST":
-                response = await client.post(url, headers=headers, json=data)
-            elif method == "PUT":
-                response = await client.put(url, headers=headers, json=data)
-            elif method == "PATCH":
-                response = await client.patch(url, headers=headers, json=data)
-            elif method == "DELETE":
-                response = await client.delete(url, headers=headers)
-            else:
-                raise HTTPException(status_code=400, detail="Invalid HTTP method")
-            
-            print(f"VAPI Response Status: {response.status_code}")  # Debug logging
-            
-            if response.status_code >= 400:
-                error_text = response.text
-                print(f"VAPI Error Response: {error_text}")  # Debug logging
-                raise HTTPException(
-                    status_code=response.status_code, 
-                    detail=f"VAPI API Error: {error_text}"
-                )
-            
-            return response.json() if response.content else {}
-            
-        except httpx.RequestError as e:
-            print(f"VAPI Request Error: {str(e)}")  # Debug logging
-            raise HTTPException(status_code=503, detail=f"VAPI API request failed: {str(e)}")
-        except Exception as e:
-            print(f"VAPI Unknown Error: {str(e)}")  # Debug logging
-            raise HTTPException(status_code=500, detail=f"VAPI API call failed: {str(e)}")
+        if response.status_code >= 400:
+            raise HTTPException(status_code=response.status_code, detail=response.text)
+        
+        return response.json()
 
 # Auth routes
 @app.post("/auth/register")
@@ -368,31 +346,23 @@ async def get_agents(current_user: User = Depends(get_current_user), db: Session
 async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Create a new agent using VAPI API"""
     try:
-        # Create simplified VAPI agent payload
         vapi_payload = {
             "name": agent_data.name,
-            "firstMessage": agent_data.firstMessage or "Hello! How can I help you today?",
             "model": {
                 "provider": "openai",
-                "model": agent_data.model or "gpt-4",
+                "model": agent_data.model,
                 "messages": [
                     {
                         "role": "system",
-                        "content": agent_data.systemPrompt or f"You are {agent_data.name}, a helpful AI assistant working in the {agent_data.industry} industry. {agent_data.description or ''}"
+                        "content": agent_data.systemPrompt or f"You are {agent_data.name}, a helpful AI assistant working in the {agent_data.industry} industry."
                     }
-                ],
-                "temperature": 0.7,
-                "maxTokens": 500
+                ]
             },
             "voice": {
                 "provider": "openai",
-                "voiceId": agent_data.voice or "alloy"
+                "voiceId": agent_data.voice
             },
-            "transcriber": {
-                "provider": "deepgram",
-                "model": "nova-2",
-                "language": agent_data.language or "en"
-            }
+            "firstMessage": agent_data.firstMessage or "Hello! How can I help you today?"
         }
         
         # Create agent in VAPI
@@ -424,7 +394,6 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
         
     except Exception as e:
         # If VAPI call fails, still create in local DB with "error" status
-        print(f"VAPI API Error: {str(e)}")  # Debug logging
         agent_id = str(uuid.uuid4())
         agent = Agent(
             id=agent_id,
@@ -449,45 +418,20 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
 
 @app.get("/agents/{agent_id}")
 async def get_agent(agent_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get a specific agent with latest data from VAPI"""
+    """Get a specific agent"""
     agent = db.query(Agent).filter(and_(Agent.id == agent_id, Agent.user_id == current_user.id)).first()
     if not agent:
         raise HTTPException(status_code=404, detail="Agent not found")
     
-    # Try to get updated info from VAPI and sync
+    # Try to get updated info from VAPI
     try:
         if agent.vapi_id:
             vapi_agent = await call_vapi_api(f"/assistant/{agent.vapi_id}")
-            
-            # Update local agent with latest VAPI data
-            if vapi_agent:
-                agent.name = vapi_agent.get("name", agent.name)
-                agent.status = "active"  # If we can fetch it, it's active
-                
-                # Update first message if available
-                if vapi_agent.get("firstMessage"):
-                    agent.first_message = vapi_agent["firstMessage"]
-                
-                # Update model info if available
-                if vapi_agent.get("model", {}).get("messages"):
-                    system_message = next(
-                        (msg for msg in vapi_agent["model"]["messages"] if msg.get("role") == "system"),
-                        None
-                    )
-                    if system_message:
-                        agent.system_prompt = system_message.get("content")
-                
-                # Update voice if available  
-                if vapi_agent.get("voice", {}).get("voiceId"):
-                    agent.voice = vapi_agent["voice"]["voiceId"]
-                
-                agent.updated_at = datetime.utcnow()
-                db.commit()
-                
-    except Exception as e:
-        print(f"Failed to sync agent from VAPI: {str(e)}")
-        # Don't fail the request, just continue with local data
-        pass
+            # Update local agent with VAPI data if needed
+            agent.status = "active"
+            db.commit()
+    except:
+        pass  # Continue with local data if VAPI call fails
     
     return agent
 
@@ -499,11 +443,9 @@ async def update_agent(agent_id: str, agent_data: AgentUpdate, current_user: Use
         raise HTTPException(status_code=404, detail="Agent not found")
     
     # Update local agent
-    update_data = agent_data.dict(exclude_unset=True)
-    for field, value in update_data.items():
-        db_field = field.replace("systemPrompt", "system_prompt").replace("firstMessage", "first_message")
-        if hasattr(agent, db_field):
-            setattr(agent, db_field, value)
+    for field, value in agent_data.dict(exclude_unset=True).items():
+        if hasattr(agent, field.replace("systemPrompt", "system_prompt").replace("firstMessage", "first_message")):
+            setattr(agent, field.replace("systemPrompt", "system_prompt").replace("firstMessage", "first_message"), value)
     
     agent.updated_at = datetime.utcnow()
     
@@ -511,47 +453,23 @@ async def update_agent(agent_id: str, agent_data: AgentUpdate, current_user: Use
     try:
         if agent.vapi_id:
             vapi_payload = {}
-            
             if agent_data.name:
                 vapi_payload["name"] = agent_data.name
-                
-            if agent_data.firstMessage:
-                vapi_payload["firstMessage"] = agent_data.firstMessage
-                
-            if agent_data.systemPrompt or agent_data.model:
+            if agent_data.systemPrompt:
                 vapi_payload["model"] = {
                     "provider": "openai",
-                    "model": agent_data.model or agent.model,
-                    "messages": [
-                        {
-                            "role": "system", 
-                            "content": agent_data.systemPrompt or agent.system_prompt
-                        }
-                    ],
-                    "temperature": 0.7,
-                    "maxTokens": 500
+                    "model": agent.model,
+                    "messages": [{"role": "system", "content": agent_data.systemPrompt}]
                 }
-                
+            if agent_data.firstMessage:
+                vapi_payload["firstMessage"] = agent_data.firstMessage
             if agent_data.voice:
-                vapi_payload["voice"] = {
-                    "provider": "openai",
-                    "voiceId": agent_data.voice
-                }
-            
-            if agent_data.language:
-                vapi_payload["transcriber"] = {
-                    "provider": "deepgram",
-                    "model": "nova-2", 
-                    "language": agent_data.language
-                }
+                vapi_payload["voice"] = {"provider": "openai", "voiceId": agent_data.voice}
             
             if vapi_payload:
                 await call_vapi_api(f"/assistant/{agent.vapi_id}", method="PATCH", data=vapi_payload)
-                agent.status = "active"  # Update status on successful VAPI update
-            
-    except Exception as e:
-        print(f"VAPI Update Error: {str(e)}")  # Debug logging
-        agent.status = "error"  # Mark as error if VAPI update fails
+    except:
+        pass  # Continue even if VAPI update fails
     
     db.commit()
     db.refresh(agent)
@@ -578,63 +496,6 @@ async def delete_agent(agent_id: str, current_user: User = Depends(get_current_u
     
     return {"message": "Agent deleted successfully"}
 
-@app.post("/agents/{agent_id}/test")
-async def test_agent(
-    agent_id: str, 
-    test_data: dict,
-    current_user: User = Depends(get_current_user), 
-    db: Session = Depends(get_db)
-):
-    """Test an agent with a sample call"""
-    agent = db.query(Agent).filter(and_(Agent.id == agent_id, Agent.user_id == current_user.id)).first()
-    if not agent:
-        raise HTTPException(status_code=404, detail="Agent not found")
-    
-    try:
-        # Create a test call via VAPI
-        vapi_payload = {
-            "assistantId": agent.vapi_id or agent.id,
-            "phoneNumberId": test_data.get("phoneNumberId"),  # Optional
-            "customer": {
-                "number": test_data.get("phoneNumber", "+1234567890")  # Demo number
-            },
-            "metadata": {
-                "test": True,
-                "agentId": agent.id,
-                "userId": current_user.id
-            }
-        }
-        
-        # Make test call via VAPI
-        vapi_call = await call_vapi_api("/call", method="POST", data=vapi_payload)
-        
-        # Store test call in local database
-        call_id = str(uuid.uuid4())
-        call = Call(
-            id=call_id,
-            vapi_id=vapi_call.get("id"),
-            user_id=current_user.id,
-            agent_id=agent.id,
-            phone_number=test_data.get("phoneNumber", "+1234567890"),
-            direction="outbound",
-            status="initiated",
-            type="test"
-        )
-        
-        db.add(call)
-        db.commit()
-        db.refresh(call)
-        
-        return {
-            "message": "Test call initiated successfully",
-            "callId": call.id,
-            "vapiCallId": vapi_call.get("id"),
-            "status": "initiated"
-        }
-        
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Failed to initiate test call: {str(e)}")
-
 # Phone number routes
 @app.get("/phone-numbers")
 async def get_phone_numbers(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -646,22 +507,9 @@ async def get_phone_numbers(current_user: User = Depends(get_current_user), db: 
 async def create_phone_number(phone_data: PhoneNumberCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Create a new phone number using VAPI API"""
     try:
-        # Create VAPI phone number payload based on provider
-        if phone_data.provider == "byo-phone-number":
-            vapi_payload = {
-                "provider": "byo-phone-number",
-                "name": phone_data.name,
-                "number": phone_data.dialCode + (phone_data.areaCode or ""),  # Combine dial code and area code
-                "credentialId": "default"  # You may need to configure this
-            }
-        else:
-            # For Vapi, Twilio, etc.
-            vapi_payload = {
-                "provider": phone_data.provider,
-                "name": phone_data.name,
-                "areaCode": phone_data.areaCode,
-                "credentialId": "default"  # You may need to configure this
-            }
+        vapi_payload = {"name": phone_data.name}
+        if phone_data.areaCode:
+            vapi_payload["areaCode"] = phone_data.areaCode
         
         # Create phone number in VAPI
         vapi_phone = await call_vapi_api("/phone-number", method="POST", data=vapi_payload)
@@ -672,10 +520,9 @@ async def create_phone_number(phone_data: PhoneNumberCreate, current_user: User 
             id=phone_id,
             vapi_id=vapi_phone.get("id"),
             user_id=current_user.id,
-            number=vapi_phone.get("number") or phone_data.dialCode + (phone_data.areaCode or ""),
+            number=vapi_phone.get("number", ""),
             name=phone_data.name,
             area_code=phone_data.areaCode,
-            country=phone_data.country,
             provider=phone_data.provider,
             status="active"
         )
@@ -843,25 +690,6 @@ async def get_dashboard_analytics(current_user: User = Depends(get_current_user)
 @app.get("/health")
 async def health_check():
     return {"status": "healthy", "timestamp": datetime.utcnow().isoformat()}
-
-@app.get("/health/vapi")
-async def vapi_health_check():
-    """Check Vapi API connectivity"""
-    try:
-        # Test Vapi API connection
-        assistants = await call_vapi_api("/assistant")
-        return {
-            "status": "connected",
-            "message": "Vapi API is accessible",
-            "assistants_count": len(assistants) if isinstance(assistants, list) else 0,
-            "timestamp": datetime.utcnow().isoformat()
-        }
-    except Exception as e:
-        return {
-            "status": "error",
-            "message": f"Vapi API connection failed: {str(e)}",
-            "timestamp": datetime.utcnow().isoformat()
-        }
 
 # Root endpoint
 @app.get("/")

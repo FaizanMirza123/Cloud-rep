@@ -1,0 +1,95 @@
+{
+  "fallbackDestination": {
+    "message": "foo",
+    "type": "number",
+    "numberE164CheckEnabled": true,
+    "number": "foo",
+    "extension": "foo",
+    "callerId": "foo",
+    "transferPlan": {
+      "mode": "blind-transfer",
+      "message": "foo",
+      "timeout": 60,
+      "sipVerb": "refer",
+      "holdAudioUrl": "foo",
+      "transferCompleteAudioUrl": "foo",
+      "twiml": "foo",
+      "summaryPlan": {
+        "messages": [
+          {}
+        ],
+        "enabled": true,
+        "timeoutSeconds": 42
+      },
+      "sipHeadersInReferToEnabled": true,
+      "fallbackPlan": {
+        "message": "foo",
+        "endCallEnabled": true
+      }
+    },
+    "description": "foo"
+  },
+  "hooks": [
+    {
+      "on": "call.ringing",
+      "do": [
+        {
+          "type": "transfer",
+          "destination": {
+            "message": "foo",
+            "type": "number",
+            "numberE164CheckEnabled": true,
+            "number": "foo",
+            "extension": "foo",
+            "callerId": "foo",
+            "transferPlan": {
+              "mode": "blind-transfer",
+              "message": "foo",
+              "timeout": 60,
+              "sipVerb": "refer",
+              "holdAudioUrl": "foo",
+              "transferCompleteAudioUrl": "foo",
+              "twiml": "foo",
+              "summaryPlan": {
+                "messages": [
+                  {}
+                ],
+                "enabled": true,
+                "timeoutSeconds": 42
+              },
+              "sipHeadersInReferToEnabled": true,
+              "fallbackPlan": {
+                "message": {},
+                "endCallEnabled": true
+              }
+            },
+            "description": "foo"
+          }
+        }
+      ]
+    }
+  ],
+  "provider": "byo-phone-number",
+  "numberE164CheckEnabled": true,
+  "id": "foo",
+  "orgId": "foo",
+  "createdAt": "foo",
+  "updatedAt": "foo",
+  "status": "active",
+  "name": "foo",
+  "assistantId": "foo",
+  "workflowId": "foo",
+  "squadId": "foo",
+  "server": {
+    "timeoutSeconds": 20,
+    "url": "foo",
+    "headers": {},
+    "backoffPlan": {
+      "type": "fixed",
+      "maxRetries": 0,
+      "baseDelaySeconds": 1
+    }
+  },
+  "number": "foo",
+  "credentialId": "foo"
+}

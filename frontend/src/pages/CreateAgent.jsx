@@ -13,10 +13,14 @@ import {
   Shield,
   Check,
 } from "lucide-react";
+import { useAgents } from "../hooks/useApi";
+import toast from "react-hot-toast";
 
 const CreateAgent = () => {
   const navigate = useNavigate();
+  const { createAgent } = useAgents();
   const [currentStep, setCurrentStep] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [agentData, setAgentData] = useState({
     name: "",
     industry: "",
@@ -99,17 +103,48 @@ const CreateAgent = () => {
 
   const handleSave = async () => {
     try {
-      // Here you would make the API call to create the agent
-      console.log("Creating agent with data:", agentData);
+      setLoading(true);
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      // Validate required fields
+      if (!agentData.name.trim()) {
+        toast.error("Agent name is required");
+        return;
+      }
 
-      alert("Agent created successfully!");
-      navigate("/agents");
+      if (!agentData.industry.trim()) {
+        toast.error("Industry is required");
+        return;
+      }
+
+      // Create the agent via API
+      const result = await createAgent(agentData);
+
+      if (result.success) {
+        toast.success("Agent created successfully!");
+        navigate("/agents");
+      } else {
+        toast.error(result.error || "Failed to create agent");
+      }
     } catch (error) {
       console.error("Error creating agent:", error);
-      alert("Failed to create agent. Please try again.");
+      toast.error("Failed to create agent. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTest = async () => {
+    try {
+      if (!agentData.name.trim()) {
+        toast.error("Please save the agent first before testing");
+        return;
+      }
+
+      // TODO: Implement test call functionality
+      toast.info("Test call functionality coming soon!");
+    } catch (error) {
+      console.error("Error testing agent:", error);
+      toast.error("Failed to test agent");
     }
   };
 
@@ -539,9 +574,20 @@ const CreateAgent = () => {
                 ) : (
                   <button
                     onClick={handleSave}
-                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700"
+                    disabled={loading}
+                    className="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
-                    Create Agent
+                    {loading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Creating...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Save className="w-4 h-4" />
+                        <span>Create Agent</span>
+                      </>
+                    )}
                   </button>
                 )}
               </div>
