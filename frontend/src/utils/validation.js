@@ -28,35 +28,41 @@ export const validateEmail = (email) => {
 };
 
 export const validatePhoneNumber = (phone) => {
-  // Basic phone validation - accepts international format
+  // Accepts US and international formats, trims input, and checks digit count
+  if (!phone || typeof phone !== 'string') {
+    return { isValid: false, error: "Please enter a valid phone number" };
+  }
+  const trimmed = phone.trim();
+  // Allow: +, digits, spaces, dashes, parentheses
   const phoneRegex = /^\+?[\d\s\-\(\)]+$/;
-  const minLength = 10;
-  const cleanPhone = phone.replace(/\D/g, "");
-  
+  const cleanPhone = trimmed.replace(/\D/g, "");
+  // Accept 10-15 digits (US/international)
+  const validLength = cleanPhone.length >= 10 && cleanPhone.length <= 15;
+  const validChars = phoneRegex.test(trimmed);
   return {
-    isValid: phoneRegex.test(phone) && cleanPhone.length >= minLength,
-    error: phoneRegex.test(phone) && cleanPhone.length >= minLength 
-      ? null 
-      : "Please enter a valid phone number"
+    isValid: validChars && validLength,
+    error: validChars && validLength ? null : "Please enter a valid phone number"
   };
 };
 
 export const formatPhoneNumber = (phone) => {
+  if (!phone) return "";
+
   // Remove all non-digit characters
   const cleaned = phone.replace(/\D/g, "");
-  
-  // Format as +1 (XXX) XXX-XXXX for US numbers
-  if (cleaned.length === 10) {
+
+  // Only format if user input is a complete US number (10 digits, no formatting chars)
+  if (cleaned.length === 10 && phone.length === 10) {
     return `+1 (${cleaned.slice(0, 3)}) ${cleaned.slice(3, 6)}-${cleaned.slice(6)}`;
   }
-  
-  // For international numbers, just add + if not present
-  if (cleaned.length > 10 && !phone.startsWith("+")) {
+  // For international numbers, only add + if not present and input is complete (more than 10 digits, no formatting chars)
+  if (cleaned.length > 10 && phone.length === cleaned.length && !phone.startsWith("+")) {
     return `+${cleaned}`;
   }
-  
+  // Otherwise, return as typed (let user edit naturally)
   return phone;
 };
+
 
 export const getPasswordStrength = (password) => {
   let score = 0;

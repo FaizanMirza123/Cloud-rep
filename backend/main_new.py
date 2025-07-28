@@ -22,7 +22,7 @@ VAPI_API_KEY = os.getenv("VAPI_API_KEY", "")
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-this-in-production")
 VAPI_BASE_URL = "https://api.vapi.ai"
 
-app = FastAPI(title="VoiceFlow API", version="1.0.0")
+app = FastAPI(title="EmployAI API", version="1.0.0")
 
 # CORS middleware
 app.add_middleware(
@@ -694,7 +694,7 @@ async def health_check():
 # Root endpoint
 @app.get("/")
 async def root():
-    return {"message": "VoiceFlow API", "version": "1.0.0"}
+    return {"message": "EmployAI API", "version": "1.0.0"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

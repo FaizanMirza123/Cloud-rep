@@ -73,21 +73,21 @@ class EmailService:
         self.smtp_port = int(os.getenv("SMTP_PORT", "587"))
         self.smtp_username = os.getenv("SMTP_USERNAME", "")
         self.smtp_password = os.getenv("SMTP_PASSWORD", "")
-        self.from_email = os.getenv("FROM_EMAIL", "noreply@voiceflow.com")
+        self.from_email = os.getenv("FROM_EMAIL", "noreply@EmployAI.com")
     
     def send_verification_email(self, to_email: str, verification_token: str) -> bool:
         """Send email verification"""
         try:
-            subject = "Verify Your VoiceFlow Account"
+            subject = "Verify Your EmployAI Account"
             verification_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={verification_token}"
             
             body = f"""
             <html>
                 <body>
-                    <h2>Welcome to VoiceFlow!</h2>
+                    <h2>Welcome to EmployAI!</h2>
                     <p>Please click the link below to verify your email address:</p>
                     <a href="{verification_url}" style="background-color: #4CAF50; color: white; padding: 14px 20px; text-decoration: none; border-radius: 4px;">Verify Email</a>
-                    <p>If you didn't create an account with VoiceFlow, please ignore this email.</p>
+                    <p>If you didn't create an account with EmployAI, please ignore this email.</p>
                     <p>This link will expire in 24 hours.</p>
                 </body>
             </html>
@@ -101,7 +101,7 @@ class EmailService:
     def send_password_reset_email(self, to_email: str, reset_token: str) -> bool:
         """Send password reset email"""
         try:
-            subject = "Reset Your VoiceFlow Password"
+            subject = "Reset Your EmployAI Password"
             reset_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={reset_token}"
             
             body = f"""

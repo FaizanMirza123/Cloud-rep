@@ -1,8 +1,8 @@
-# 🎙️ VoiceFlow - Complete Voice AI Application
+# 🎙️ EmployAI - Complete Voice AI Application
 
 A comprehensive web application that integrates with Vapi's API to provide advanced voice AI capabilities with authentication, agent management, and telephony features.
 
-![VoiceFlow Banner](https://via.placeholder.com/800x200/1e40af/ffffff?text=VoiceFlow+Voice+AI+Platform)
+![EmployAI Banner](https://via.placeholder.com/800x200/1e40af/ffffff?text=EmployAI+Voice+AI+Platform)
 
 ## ✨ Features
 

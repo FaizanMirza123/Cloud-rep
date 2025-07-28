@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple test script to verify the VoiceFlow application setup
+Simple test script to verify the EmployAI application setup
 """
 
 import sys
@@ -41,7 +41,7 @@ def check_database():
         print("✅ Database tables created successfully")
         
         # Check if tables exist
-        conn = sqlite3.connect('voiceflow.db')
+        conn = sqlite3.connect('EmployAI.db')
         cursor = conn.cursor()
         
         tables = ['users', 'agents', 'phone_numbers', 'calls']
@@ -149,7 +149,7 @@ def check_frontend_setup():
 
 def main():
     """Run all tests"""
-    print("🔍 VoiceFlow Application Setup Verification")
+    print("🔍 EmployAI Application Setup Verification")
     print("=" * 50)
     
     all_passed = True
@@ -173,7 +173,7 @@ def main():
     
     print("\n" + "=" * 50)
     if all_passed:
-        print("🎉 All tests passed! Your VoiceFlow application is ready to run.")
+        print("🎉 All tests passed! Your EmployAI application is ready to run.")
         print("\n📋 Next steps:")
         print("1. Configure your .env file with VAPI_API_KEY")
         print("2. Start backend: python main.py")

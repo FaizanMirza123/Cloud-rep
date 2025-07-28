@@ -43,7 +43,7 @@ const Login = () => {
           </div>
         </div>
         <h2 className="mt-4 text-center text-3xl font-bold text-gray-900">
-          VoiceFlow
+          EmployAI
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
           Sign in to your account

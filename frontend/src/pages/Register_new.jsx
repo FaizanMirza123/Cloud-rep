@@ -168,7 +168,7 @@ const Register = () => {
           Create Account
         </h2>
         <p className="mt-2 text-center text-sm text-gray-600">
-          Join VoiceFlow today
+          Join EmployAI today
         </p>
       </div>
 

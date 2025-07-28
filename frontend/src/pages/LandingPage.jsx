@@ -1,4 +1,4 @@
-import React from "react"; // REMOVED: useState is no longer needed
+import React, { useState } from "react";
 import { Link } from "react-router-dom";
 
 // Import Bootstrap CSS directly into this component
@@ -14,6 +14,8 @@ import {
   Col,
   Accordion,
   Form,
+  Modal,
+  Alert,
 } from "react-bootstrap";
 
 // Import React-Bootstrap-Icons
@@ -194,8 +196,88 @@ const Styles = () => (
 );
 
 const LandingPage = () => {
-  // REMOVED: The state that was making the button selection stick.
-  // const [selectedAgent, setSelectedAgent] = useState('Appointment Setter');
+  // State for Schedule Demo Modal
+  const [showDemoModal, setShowDemoModal] = useState(false);
+  const [demoFormData, setDemoFormData] = useState({
+    Email: "",
+    FirstName: "",
+    LastName: "",
+    Appointment_Date: "",
+    Appointment_Time: "",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitMessage, setSubmitMessage] = useState("");
+  const [submitError, setSubmitError] = useState("");
+
+  // Handle demo form input changes
+  const handleDemoFormChange = (e) => {
+    const { name, value } = e.target;
+    setDemoFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  // Handle demo form submission
+  const handleDemoSubmit = async (e) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError("");
+    setSubmitMessage("");
+
+    try {
+      // Format the data according to specifications
+      const formattedData = {
+        Email: demoFormData.Email,
+        FirstName: demoFormData.FirstName,
+        LastName: demoFormData.LastName,
+        Appointment_Date: demoFormData.Appointment_Date, // Already in YYYY-MM-DD format
+        Appointment_Time: `T${demoFormData.Appointment_Time}:00.000Z`, // Convert HH:MM to THH:MM:SS.000Z
+        Preferred_Contact_Method: "Email",
+      };
+
+      const response = await fetch(
+        "https://hook.us2.make.com/0a8zjatgf1xadpf02xl068u6uecak6o5",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(formattedData),
+        }
+      );
+
+      if (response.ok) {
+        setSubmitMessage(
+          "Demo scheduled successfully! We will contact you soon."
+        );
+        setDemoFormData({
+          Email: "",
+          FirstName: "",
+          LastName: "",
+          Appointment_Date: "",
+          Appointment_Time: "",
+        });
+        setTimeout(() => {
+          setShowDemoModal(false);
+          setSubmitMessage("");
+        }, 2000);
+      } else {
+        throw new Error("Failed to schedule demo");
+      }
+    } catch (error) {
+      setSubmitError("Failed to schedule demo. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  // Open demo modal
+  const openDemoModal = () => {
+    setShowDemoModal(true);
+    setSubmitError("");
+    setSubmitMessage("");
+  };
 
   const agentTypes = [
     { icon: PersonRolodex, name: "Receptionist" },
@@ -209,22 +291,22 @@ const LandingPage = () => {
   const faqData = [
     {
       eventKey: "0",
-      title: "What is NexusAI?",
-      body: "NexusAI is an all-in-one AI-powered communication platform that automates inbound and outbound customer interactions, including bookings, inquiries, lead generation, and customer support.",
+      title: "What is EmployAI?",
+      body: "EmployAI is an all-in-one AI-powered communication platform that automates inbound and outbound customer interactions, including bookings, inquiries, lead generation, and customer support.",
     },
     {
       eventKey: "1",
-      title: "Is NexusAI suitable for my industry?",
-      body: "Yes, NexusAI offers tailored solutions for a wide range of industries including Healthcare, Legal Services, Government, and more. Our platform is flexible and can be customized to meet your specific business needs.",
+      title: "Is EmployAI suitable for my industry?",
+      body: "Yes, EmployAI offers tailored solutions for a wide range of industries including Healthcare, Legal Services, Government, and more. Our platform is flexible and can be customized to meet your specific business needs.",
     },
     {
       eventKey: "2",
-      title: "How Secure is NexusAI?",
-      body: "We prioritize data security and privacy. NexusAI is built with robust security measures, including end-to-end encryption and compliance with industry standards, to ensure your data is always protected.",
+      title: "How Secure is EmployAI?",
+      body: "We prioritize data security and privacy. EmployAI is built with robust security measures, including end-to-end encryption and compliance with industry standards, to ensure your data is always protected.",
     },
     {
       eventKey: "3",
-      title: "Can I customize NexusAI for my business?",
+      title: "Can I customize EmployAI for my business?",
       body: "Absolutely. Customization is at the core of our platform. You can create custom AI agents, define specific workflows, integrate with your existing CRM, and tailor the entire experience to match your brand and operational needs.",
     },
   ];
@@ -259,7 +341,7 @@ const LandingPage = () => {
         <Container>
           <Navbar.Brand as={Link} to="/" className="d-flex align-items-center">
             <Cpu className="me-2" color="#0d6efd" size={24} />
-            <span className="brand-text">NexusAI</span>
+            <span className="brand-text">EmployAI</span>
           </Navbar.Brand>
           <Navbar.Toggle aria-controls="main-navbar" />
           <Navbar.Collapse id="main-navbar">
@@ -282,7 +364,7 @@ const LandingPage = () => {
             <Row className="justify-content-center">
               <Col lg={10}>
                 <p className="text-primary fw-bold">
-                  NexusAI Agents Business Automation
+                  EmployAI Agents Business Automation
                 </p>
                 <h1 className="mb-4">
                   Say Hello to Your Fully Automated <br />
@@ -301,10 +383,7 @@ const LandingPage = () => {
                 >
                   Get Started for Free
                 </Button>
-                <Button
-                  variant="outline-dark"
-                  href="https://hook.us2.make.com/0a8zjatgf1xadpf02xl068u6uecak6o5"
-                >
+                <Button variant="outline-dark" onClick={openDemoModal}>
                   Schedule Demo
                 </Button>
               </Col>
@@ -462,7 +541,7 @@ const LandingPage = () => {
                   Technology
                 </h2>
                 <p className="text-muted mb-5">
-                  At NexusAI, our simplified knowledge base sync serves as the
+                  At EmployAI, our simplified knowledge base sync serves as the
                   cornerstone for training all AI agents, ensuring rapid
                   deployment and consistent performance across your
                   organization.
@@ -506,7 +585,7 @@ const LandingPage = () => {
                 <h2 className="section-title">Frequently asked questions</h2>
                 <p className="text-muted">
                   Couldn't find what you looking for? Write to us at{" "}
-                  <a href="mailto:sales@nexusai.com">sales@nexusai.com</a>
+                  <a href="mailto:sales@EmployAI.com">sales@EmployAI.com</a>
                 </p>
               </Col>
               <Col lg={8}>
@@ -537,12 +616,14 @@ const LandingPage = () => {
               <span className="highlight">AI-Powered workforce</span>
             </h2>
             <p className="text-muted mb-4">
-              Upgrade your business operations with NexusAI.
+              Upgrade your business operations with EmployAI.
             </p>
             <Button as={Link} to="/register" variant="primary" className="me-2">
               Get Started for Free
             </Button>
-            <Button variant="outline-dark">Schedule Demo</Button>
+            <Button variant="outline-dark" onClick={openDemoModal}>
+              Schedule Demo
+            </Button>
           </Container>
         </section>
       </main>
@@ -554,11 +635,11 @@ const LandingPage = () => {
             <Col lg={4} className="mb-4 mb-lg-0">
               <div className="d-flex align-items-center fs-4 mb-3">
                 <Cpu className="me-2" />
-                <span className="navbar-brand">NexusAI</span>
+                <span className="navbar-brand">EmployAI</span>
               </div>
               <p>
                 Unlock the power of automated customer interactions with
-                NexusAI. Get started for free today and experience seamless
+                EmployAI. Get started for free today and experience seamless
                 communication, increased efficiency, and real-time results.
               </p>
             </Col>
@@ -599,7 +680,7 @@ const LandingPage = () => {
               <h5>Company</h5>
               <Nav className="flex-column">
                 <Nav.Link className="p-0 mb-2" href="#">
-                  About NexusAI
+                  About EmployAI
                 </Nav.Link>
                 <Nav.Link className="p-0 mb-2" href="#">
                   Events
@@ -610,7 +691,7 @@ const LandingPage = () => {
           <hr style={{ borderColor: "#343a40" }} />
           <div className="d-md-flex justify-content-between pt-3">
             <p className="mb-2 mb-md-0">
-              © {new Date().getFullYear()} NexusAI. All rights reserved.
+              © {new Date().getFullYear()} EmployAI. All rights reserved.
             </p>
             <div>
               <a href="#" className="me-3">
@@ -621,6 +702,106 @@ const LandingPage = () => {
           </div>
         </Container>
       </footer>
+
+      {/* Schedule Demo Modal */}
+      <Modal
+        show={showDemoModal}
+        onHide={() => setShowDemoModal(false)}
+        size="lg"
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Schedule a Demo</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {submitMessage && <Alert variant="success">{submitMessage}</Alert>}
+          {submitError && <Alert variant="danger">{submitError}</Alert>}
+
+          <Form onSubmit={handleDemoSubmit}>
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>First Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="FirstName"
+                    value={demoFormData.FirstName}
+                    onChange={handleDemoFormChange}
+                    required
+                    placeholder="Enter your first name"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Last Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    name="LastName"
+                    value={demoFormData.LastName}
+                    onChange={handleDemoFormChange}
+                    required
+                    placeholder="Enter your last name"
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <Form.Group className="mb-3">
+              <Form.Label>Email Address *</Form.Label>
+              <Form.Control
+                type="email"
+                name="Email"
+                value={demoFormData.Email}
+                onChange={handleDemoFormChange}
+                required
+                placeholder="Enter your email address"
+              />
+            </Form.Group>
+
+            <Row>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Preferred Date *</Form.Label>
+                  <Form.Control
+                    type="date"
+                    name="Appointment_Date"
+                    value={demoFormData.Appointment_Date}
+                    onChange={handleDemoFormChange}
+                    required
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group className="mb-3">
+                  <Form.Label>Preferred Time *</Form.Label>
+                  <Form.Control
+                    type="time"
+                    name="Appointment_Time"
+                    value={demoFormData.Appointment_Time}
+                    onChange={handleDemoFormChange}
+                    required
+                  />
+                </Form.Group>
+              </Col>
+            </Row>
+
+            <div className="d-grid gap-2 d-md-flex justify-content-md-end">
+              <Button
+                variant="secondary"
+                onClick={() => setShowDemoModal(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button variant="primary" type="submit" disabled={isSubmitting}>
+                {isSubmitting ? "Scheduling..." : "Schedule Demo"}
+              </Button>
+            </div>
+          </Form>
+        </Modal.Body>
+      </Modal>
     </>
   );
 };

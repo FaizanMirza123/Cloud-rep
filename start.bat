@@ -1,8 +1,8 @@
 @echo off
-REM VoiceFlow Application Startup Script for Windows
+REM EmployAI Application Startup Script for Windows
 
 echo =================================================
-echo      VoiceFlow Application Startup
+echo      EmployAI Application Startup
 echo =================================================
 
 REM Check if .env file exists
@@ -22,17 +22,17 @@ if not exist "frontend\.env" (
 
 REM Start backend
 echo Starting backend server...
-start "VoiceFlow Backend" cmd /k "cd backend && python main.py"
+start "EmployAI Backend" cmd /k "cd backend && python main.py"
 
 REM Wait a moment for backend to start
 timeout /t 3 /nobreak
 
 REM Start frontend
 echo Starting frontend development server...
-start "VoiceFlow Frontend" cmd /k "cd frontend && npm run dev"
+start "EmployAI Frontend" cmd /k "cd frontend && npm run dev"
 
 echo =================================================
-echo   VoiceFlow Application Started!
+echo   EmployAI Application Started!
 echo   Backend: http://localhost:8000
 echo   Frontend: http://localhost:5173
 echo   API Docs: http://localhost:8000/docs

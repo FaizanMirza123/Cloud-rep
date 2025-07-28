@@ -1,8 +1,8 @@
-# VoiceFlow Application Setup Guide
+# EmployAI Application Setup Guide
 
 ## 🚀 Complete Implementation Summary
 
-This VoiceFlow application now includes all requested features:
+This EmployAI application now includes all requested features:
 
 ### ✅ Implemented Features
 
@@ -89,7 +89,7 @@ cp .env.example .env
 ```env
 VAPI_API_KEY=your_vapi_api_key_here
 JWT_SECRET=your_super_secret_jwt_key_here
-DATABASE_URL=sqlite:///./voiceflow.db
+DATABASE_URL=sqlite:///./EmployAI.db
 FRONTEND_URL=http://localhost:5173
 
 # Optional: Email service (for password reset)
@@ -97,7 +97,7 @@ SMTP_SERVER=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USERNAME=your_email@gmail.com
 SMTP_PASSWORD=your_app_password
-FROM_EMAIL=noreply@voiceflow.com
+FROM_EMAIL=noreply@EmployAI.com
 
 # Optional: Google OAuth
 GOOGLE_CLIENT_ID=your_google_client_id
@@ -262,4 +262,4 @@ All pages are fully responsive and work on:
 - Test all endpoints with proper authentication
 - Verify Vapi API integration
 
-This implementation provides a complete, production-ready VoiceFlow application with all requested features! 🎉
+This implementation provides a complete, production-ready EmployAI application with all requested features! 🎉

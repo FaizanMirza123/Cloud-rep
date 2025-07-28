@@ -97,7 +97,7 @@ const Layout = ({ children }) => {
                 <Bot className="w-5 h-5 text-white" />
               </div>
               <span className="ml-2 text-xl font-bold text-gray-900">
-                VoiceFlow
+                EmployAI
               </span>
             </div>
             <button

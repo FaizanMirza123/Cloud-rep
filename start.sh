@@ -1,9 +1,9 @@
 #!/bin/bash
 
-# VoiceFlow Application Startup Script
+# EmployAI Application Startup Script
 
 echo "================================================="
-echo "      VoiceFlow Application Startup"
+echo "      EmployAI Application Startup"
 echo "================================================="
 
 # Check if .env file exists
@@ -22,7 +22,7 @@ fi
 
 # Function to cleanup background processes
 cleanup() {
-    echo "Shutting down VoiceFlow application..."
+    echo "Shutting down EmployAI application..."
     pkill -f "python main.py"
     pkill -f "npm run dev"
     exit 0
@@ -49,7 +49,7 @@ FRONTEND_PID=$!
 cd ..
 
 echo "================================================="
-echo "   VoiceFlow Application Started!"
+echo "   EmployAI Application Started!"
 echo "   Backend: http://localhost:8000"
 echo "   Frontend: http://localhost:5173"
 echo "   API Docs: http://localhost:8000/docs"
