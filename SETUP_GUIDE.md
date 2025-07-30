@@ -90,7 +90,7 @@ cp .env.example .env
 VAPI_API_KEY=your_vapi_api_key_here
 JWT_SECRET=your_super_secret_jwt_key_here
 DATABASE_URL=sqlite:///./EmployAI.db
-FRONTEND_URL=http://localhost:5173
+FRONTEND_URL=https://cloud-rep-ten.vercel.app
 
 # Optional: Email service (for password reset)
 SMTP_SERVER=smtp.gmail.com
@@ -129,7 +129,7 @@ npm run dev
 
 ### 5. Access the Application
 
-- Frontend: http://localhost:5173
+- Frontend: https://cloud-rep-ten.vercel.app
 - Backend API: http://localhost:8000
 - API Documentation: http://localhost:8000/docs
 

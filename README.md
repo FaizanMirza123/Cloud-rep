@@ -110,7 +110,7 @@ cd frontend && npm run dev
 
 ## 🌐 Access Points
 
-- **Frontend Application**: http://localhost:5173
+- **Frontend Application**: https://cloud-rep-ten.vercel.app
 - **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000/docs
 - **Interactive API**: http://localhost:8000/redoc

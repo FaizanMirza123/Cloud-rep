@@ -51,7 +51,7 @@ cd ..
 echo "================================================="
 echo "   EmployAI Application Started!"
 echo "   Backend: http://localhost:8000"
-echo "   Frontend: http://localhost:5173"
+echo "   Frontend: https://cloud-rep-ten.vercel.app"
 echo "   API Docs: http://localhost:8000/docs"
 echo "================================================="
 echo "Press Ctrl+C to stop both servers"
