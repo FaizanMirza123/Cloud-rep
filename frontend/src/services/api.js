@@ -2,7 +2,7 @@ import axios from 'axios';
 
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://api-server-nu-red.vercel.app';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://51.21.196.9';
     this.cache = new Map();
     this.cacheExpiry = new Map();
     this.defaultCacheDuration = 5 * 60 * 1000; // 5 minutes
