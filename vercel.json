@@ -2,21 +2,26 @@
     "version": 2,
     "builds": [
         {
-            "src": "backend/main.py",
+            "src": "backend/api.py",
             "use": "@vercel/python"
         }
     ],
     "routes": [
         {
             "src": "/api/(.*)",
-            "dest": "backend/main.py"
+            "dest": "backend/api.py"
         },
         {
             "src": "/(.*)",
-            "dest": "backend/main.py"
+            "dest": "backend/api.py"
         }
     ],
     "env": {
         "PYTHONPATH": "./backend"
+    },
+    "functions": {
+        "backend/api.py": {
+            "maxDuration": 30
+        }
     }
 }
