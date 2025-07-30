@@ -2,20 +2,11 @@
     "version": 2,
     "routes": [
         {
-            "src": "/api/(.*)",
-            "dest": "backend/api.py"
-        },
-        {
             "src": "/(.*)",
-            "dest": "backend/api.py"
+            "dest": "/api/index"
         }
     ],
     "env": {
-        "PYTHONPATH": "./backend"
-    },
-    "functions": {
-        "backend/api.py": {
-            "maxDuration": 30
-        }
+        "PYTHONPATH": "./"
     }
 }
