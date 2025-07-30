@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
 
   // Set up axios defaults
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "https://fastapi123.duckdns.org/";
+    import.meta.env.VITE_API_BASE_URL || "https://fastapi123.duckdns.org";
   axios.defaults.baseURL = API_BASE_URL;
 
   // Configure axios interceptors
