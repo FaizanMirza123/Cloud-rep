@@ -352,7 +352,7 @@ const Agents = () => {
 
       // Call the test endpoint
       const response = await fetch(
-        `${import.meta.env.VITE_API_BASE_URL || "http://51.21.196.9"}/agents/${
+        `${import.meta.env.VITE_API_BASE_URL || "https://51.21.196.9"}/agents/${
           agent.id
         }/test`,
         {

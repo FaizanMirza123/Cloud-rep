@@ -25,7 +25,7 @@ export const AuthProvider = ({ children }) => {
 
   // Set up axios defaults
   const API_BASE_URL =
-    import.meta.env.VITE_API_BASE_URL || "http://51.21.196.9";
+    import.meta.env.VITE_API_BASE_URL || "https://51.21.196.9";
   axios.defaults.baseURL = API_BASE_URL;
 
   // Configure axios interceptors
