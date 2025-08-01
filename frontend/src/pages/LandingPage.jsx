@@ -192,6 +192,12 @@ const Styles = () => (
         opacity: 1;
         filter: grayscale(0%);
     }
+    
+    /* Footer logo styling */
+    .footer-logo {
+        max-height: 40px;
+        width: auto;
+    }
   `}</style>
 );
 
@@ -634,7 +640,12 @@ const LandingPage = () => {
           <Row className="mb-5">
             <Col lg={4} className="mb-4 mb-lg-0">
               <div className="d-flex align-items-center fs-4 mb-3">
-                <Cpu className="me-2" />
+                <img
+                  src="https://i.postimg.cc/2S8kWgz8/Whats-App-Image-2025-07-30-at-13-08-30-577a5137-removebg-preview.png"
+                  alt="enfinity ON"
+                  className="footer-logo me-2"
+                />
+
                 <span className="navbar-brand">EmployAI</span>
               </div>
               <p>

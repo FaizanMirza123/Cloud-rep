@@ -14,8 +14,8 @@ from passlib.context import CryptContext
 import uvicorn
 
 # Local imports
-from database import get_db, create_tables, User, Agent, PhoneNumber, Call
-from auth_utils import AuthUtils, EmailService, GoogleAuth
+from api.database import get_db, create_tables, User, Agent, PhoneNumber, Call
+from api.auth_utils import AuthUtils, EmailService, GoogleAuth
 
 # Environment variables
 VAPI_API_KEY = os.getenv("VAPI_API_KEY", "")

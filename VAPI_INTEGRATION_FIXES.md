@@ -25,6 +25,7 @@
 
 - Support for multiple providers (BYO, Vapi, Twilio)
 - Country-aware phone number creation
+- VAPI can create real SIP phone numbers with area code
 - Proper credential handling for Vapi API
 
 **Frontend**: Recreated PhoneNumbers.jsx with enhanced features

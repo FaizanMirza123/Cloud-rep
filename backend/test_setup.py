@@ -34,7 +34,7 @@ def check_database():
     try:
         # Import our database modules
         sys.path.append(os.path.join(os.path.dirname(__file__)))
-        from database import create_tables, engine
+        from api.database import create_tables, engine
         
         # Create tables
         create_tables()

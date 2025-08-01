@@ -88,7 +88,7 @@ export const AuthProvider = ({ children }) => {
         error: errorMessage,
       };
     }
-  };
+  }, []);
 
   const register = async (userData) => {
     try {

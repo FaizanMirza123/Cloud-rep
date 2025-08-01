@@ -46,7 +46,9 @@ A comprehensive web application that integrates with Vapi's API to provide advan
 ### 📱 Phone Number Management
 
 - **Number Provisioning** via Vapi API
+- **SIP Number Creation** with VAPI provider
 - **International Number Support** with area codes
+- **Multiple Provider Support** (Twilio, VAPI, BYO)
 - **Smooth Transitions** without UI glitches
 - **User-specific Numbers** with ownership control
 

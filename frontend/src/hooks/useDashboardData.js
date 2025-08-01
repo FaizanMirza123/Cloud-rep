@@ -1,6 +1,6 @@
 // Custom hook for dashboard data
 import { useState, useEffect } from 'react';
-import vapiService from '../services/vapiService';
+import apiService from '../services/api';
 
 export const useDashboardData = () => {
   const [dashboardData, setDashboardData] = useState({
@@ -23,71 +23,71 @@ export const useDashboardData = () => {
     try {
       setDashboardData(prev => ({ ...prev, loading: true, error: null }));
 
-      // Fetch dashboard stats
-      const stats = await vapiService.getDashboardStats();
+      // Fetch dashboard stats from our backend (filtered by user)
+      const stats = await apiService.getDashboardAnalytics();
 
-      // Fetch recent calls
-      const calls = await vapiService.listCalls({ limit: 10 });
+      // Fetch recent calls (these will be filtered by user in the backend)
+      const calls = await apiService.getCalls({ limit: 10 });
       const recentCalls = calls
-        .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
         .slice(0, 5)
         .map(call => ({
           id: call.id,
-          customer: call.customer?.name || call.customer?.number || 'Unknown',
-          agent: call.assistant?.name || 'Unknown Agent',
-          duration: vapiService.formatDuration(
-            call.endedAt && call.startedAt 
-              ? new Date(call.endedAt) - new Date(call.startedAt)
-              : 0
-          ),
+          customer: call.customer_number || 'Unknown',
+          agent: call.agent_name || 'Unknown Agent',
+          duration: call.duration ? `${Math.floor(call.duration / 60)}:${(call.duration % 60).toString().padStart(2, '0')}` : '0:00',
           status: call.status || 'completed',
-          time: new Date(call.createdAt).toLocaleTimeString([], { 
+          time: new Date(call.created_at).toLocaleTimeString([], { 
             hour: '2-digit', 
             minute: '2-digit' 
           }),
           cost: call.cost ? `$${call.cost.toFixed(2)}` : '$0.00',
         }));
 
-      // Fetch top performing agents
-      const assistants = await vapiService.listAssistants({ limit: 20 });
+      // Fetch agents (will be filtered by user in backend)
+      const agents = await apiService.getAgents();
+      
+      // Fetch top performing agents - we'll calculate this from our filtered user agents
       const topAgents = [];
-
-      for (const assistant of assistants.slice(0, 5)) {
-        try {
-          const analytics = await vapiService.getAssistantAnalytics(assistant.id);
-          topAgents.push({
-            id: assistant.id,
-            name: assistant.name || 'Unnamed Agent',
-            calls: analytics.totalCalls,
-            successRate: analytics.totalCalls > 0 
-              ? Math.round((analytics.successfulCalls / analytics.totalCalls) * 100)
-              : 0,
-            avgDuration: vapiService.formatDuration(analytics.averageDuration * 1000),
-            cost: `$${analytics.costBreakdown.total.toFixed(2)}`,
-          });
-        } catch (analyticsError) {
-          console.warn(`Failed to fetch analytics for assistant ${assistant.id}:`, analyticsError);
-          topAgents.push({
-            id: assistant.id,
-            name: assistant.name || 'Unnamed Agent',
-            calls: 0,
-            successRate: 0,
-            avgDuration: '0:00',
-            cost: '$0.00',
-          });
-        }
+      
+      // Process up to 5 agents for the top agents section
+      for (const agent of agents.slice(0, 5)) {
+        // We'll use our backend calls to calculate agent performance
+        const agentCalls = await apiService.getAgentCalls(agent.id);
+        
+        const completedCalls = agentCalls.filter(call => call.status === 'completed');
+        const totalCalls = agentCalls.length;
+        const totalDuration = completedCalls.reduce((sum, call) => sum + (call.duration || 0), 0);
+        const avgDuration = completedCalls.length > 0 
+          ? totalDuration / completedCalls.length 
+          : 0;
+        
+        const successRate = totalCalls > 0 
+          ? Math.round((completedCalls.length / totalCalls) * 100) 
+          : 0;
+          
+        const totalCost = agentCalls.reduce((sum, call) => sum + (call.cost || 0), 0);
+          
+        topAgents.push({
+          id: agent.id,
+          name: agent.name || 'Unnamed Agent',
+          calls: totalCalls,
+          successRate: successRate,
+          avgDuration: avgDuration ? `${Math.floor(avgDuration / 60)}:${(avgDuration % 60).toString().padStart(2, '0')}` : '0:00',
+          cost: `$${totalCost.toFixed(2)}`,
+        });
       }
-
+      
       // Sort by number of calls
       topAgents.sort((a, b) => b.calls - a.calls);
 
-      // Transform all assistants for the agents section
-      const allAgents = assistants.map(assistant => ({
-        id: assistant.id,
-        name: assistant.name || 'Unnamed Agent',
-        type: assistant.model?.provider || 'GPT',
-        role: 'Assistant',
-        description: assistant.firstMessage || 'AI Voice Assistant',
+      // Transform all agents for the agents section - using our backend data
+      const allAgents = agents.map(agent => ({
+        id: agent.id,
+        name: agent.name || 'Unnamed Agent',
+        type: agent.model || 'GPT',
+        role: agent.role || 'Assistant',
+        description: agent.description || 'AI Voice Assistant',
       }));
 
       setDashboardData({
@@ -112,8 +112,8 @@ export const useDashboardData = () => {
   useEffect(() => {
     fetchDashboardData();
     
-    // Refresh data every 30 seconds
-    const interval = setInterval(fetchDashboardData, 30000);
+    // Refresh data every 2 minutes instead of 30 seconds to reduce server load  
+    const interval = setInterval(fetchDashboardData, 120000);
     
     return () => clearInterval(interval);
   }, []);

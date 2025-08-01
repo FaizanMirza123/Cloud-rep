@@ -14,3 +14,4 @@ google-auth-oauthlib==1.2.0
 google-auth-httplib2==0.2.0
 phonenumbers==8.13.26
 sendgrid==6.11.0
+PyJwt

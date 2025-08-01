@@ -11,11 +11,11 @@ const ActiveCalls = () => {
   const { activeCalls, loading, error } = useCalls();
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Auto-refresh every 5 seconds
+  // Auto-refresh every 30 seconds instead of 5 seconds
   useEffect(() => {
     const interval = setInterval(() => {
       setRefreshKey((prev) => prev + 1);
-    }, 5000);
+    }, 30000);
 
     return () => clearInterval(interval);
   }, []);

@@ -14,8 +14,8 @@ from passlib.context import CryptContext
 import uvicorn
 
 # Local imports
-from database import get_db, create_tables, User, Agent, PhoneNumber, Call
-from auth_utils import AuthUtils, EmailService, GoogleAuth
+from api.database import get_db, create_tables, User, Agent, PhoneNumber, Call
+from api.auth_utils import AuthUtils, EmailService, GoogleAuth
 
 # Environment variables
 VAPI_API_KEY = os.getenv("VAPI_API_KEY", "")
@@ -27,7 +27,7 @@ app = FastAPI(title="EmployAI API", version="1.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://cloud-rep-ten.vercel.app", "http://localhost:3000"],  # Add your frontend URLs
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],  # Add your frontend URLs
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -103,8 +103,14 @@ export const usePhoneNumbers = () => {
     try {
       const newPhone = await apiService.createPhoneNumber(phoneData);
       setPhoneNumbers(prev => [...prev, newPhone]);
-      toast.success('Phone number added successfully');
-      return { success: true, data: newPhone };
+      
+      // Don't show automatic toast here, let the component handle it based on warning
+      if (newPhone.warning) {
+        return { success: true, data: newPhone, warning: newPhone.warning };
+      } else {
+        toast.success('Phone number added successfully');
+        return { success: true, data: newPhone };
+      }
     } catch (err) {
       const error = err.response?.data?.detail || 'Failed to add phone number';
       toast.error(error);

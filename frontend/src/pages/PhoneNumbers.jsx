@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { usePhoneNumbers } from "../hooks/useApi";
+import apiService from "../services/api";
 import {
   PageTransition,
   LoadingSpinner,
@@ -43,26 +44,31 @@ const CreatePhoneNumberModal = ({ isOpen, onClose, onCreateNumber }) => {
     name: "",
     country: "US",
     areaCode: "",
-    provider: "vapi",
+    provider: "twilio", // Changed default to Twilio
+    number: "", // For BYO numbers
+    accountSid: "", // For Twilio
+    authToken: "", // For Twilio
+    credentialId: "", // For existing credentials
   });
   const [loading, setLoading] = useState(false);
 
   const providers = [
-    { id: "vapi", name: "Vapi", description: "Vapi managed numbers" },
     {
       id: "twilio",
       name: "Twilio",
-      description: "Bring your own Twilio number",
+      description: "Get a real number (recommended)",
     },
     {
-      id: "vonage",
-      name: "Vonage",
-      description: "Bring your own Vonage number",
+      id: "byo-phone-number",
+      name: "BYO Number",
+      description: "Bring existing number",
     },
+    { id: "vonage", name: "Vonage", description: "Use your Vonage account" },
+    { id: "telnyx", name: "Telnyx", description: "Use your Telnyx account" },
     {
-      id: "telnyx",
-      name: "Telnyx",
-      description: "Bring your own Telnyx number",
+      id: "vapi",
+      name: "Vapi",
+      description: "Free SIP number with real area code",
     },
   ];
 
@@ -79,13 +85,21 @@ const CreatePhoneNumberModal = ({ isOpen, onClose, onCreateNumber }) => {
       });
 
       if (result.success) {
-        toast.success("Phone number provisioned successfully!");
+        if (result.warning) {
+          toast.warning(`Created: ${result.warning}`);
+        } else {
+          toast.success("Phone number provisioned successfully!");
+        }
         onClose();
         setFormData({
           name: "",
           country: "US",
           areaCode: "",
-          provider: "vapi",
+          provider: "twilio", // Changed default to Twilio
+          number: "",
+          accountSid: "",
+          authToken: "",
+          credentialId: "",
         });
       } else {
         toast.error(result.error || "Failed to provision phone number");
@@ -152,25 +166,35 @@ const CreatePhoneNumberModal = ({ isOpen, onClose, onCreateNumber }) => {
             </select>
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Area Code (Optional)
-            </label>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm font-medium text-gray-500">
-                {selectedCountry.dialCode}
-              </span>
-              <input
-                type="text"
-                value={formData.areaCode}
-                onChange={(e) =>
-                  setFormData({ ...formData, areaCode: e.target.value })
-                }
-                placeholder="555"
-                className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+          {/* Area Code - only for providers that need it */}
+          {(formData.provider === "twilio" || formData.provider === "vapi") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                {formData.provider === "vapi"
+                  ? "Area Code (Recommended)"
+                  : "Area Code (Optional)"}
+              </label>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-500">
+                  {selectedCountry.dialCode}
+                </span>
+                <input
+                  type="text"
+                  value={formData.areaCode}
+                  onChange={(e) =>
+                    setFormData({ ...formData, areaCode: e.target.value })
+                  }
+                  placeholder="555"
+                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                {formData.provider === "vapi"
+                  ? "Specify a 3-digit area code to get a SIP number in that area"
+                  : "Leave empty to let Twilio choose any available number"}
+              </p>
             </div>
-          </div>
+          )}
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -190,6 +214,238 @@ const CreatePhoneNumberModal = ({ isOpen, onClose, onCreateNumber }) => {
               ))}
             </select>
           </div>
+
+          {/* VAPI provider information */}
+          {formData.provider === "vapi" && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">i</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-800 mb-1">
+                    📞 VAPI SIP Number
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    VAPI will provision a <strong>real SIP phone number</strong>{" "}
+                    with your selected area code. This number can make and
+                    receive calls through SIP protocol, making it a
+                    cost-effective option.
+                  </p>
+                  <p className="text-xs text-blue-600 mt-2">
+                    💡 If you specify an area code (recommended), VAPI will
+                    assign a number with that area code.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Twilio provider info */}
+          {formData.provider === "twilio" && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">✓</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-green-800 mb-1">
+                    📞 Twilio Provider (Recommended)
+                  </p>
+                  <p className="text-sm text-green-700">
+                    Twilio will provision a <strong>real phone number</strong>{" "}
+                    that can make and receive calls. Get your credentials from
+                    the{" "}
+                    <a
+                      href="https://console.twilio.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-green-600"
+                    >
+                      Twilio Console
+                    </a>
+                    .
+                  </p>
+                  <p className="text-xs text-green-600 mt-2">
+                    Find Account SID and Auth Token under "Account Info" in your
+                    Twilio dashboard.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* BYO provider info */}
+          {formData.provider === "byo-phone-number" && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">i</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-blue-800 mb-1">
+                    🔗 Bring Your Own Number
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Connect an existing phone number you already own. You'll
+                    need to create BYO credentials in your{" "}
+                    <a
+                      href="https://dashboard.vapi.ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-blue-600"
+                    >
+                      VAPI Dashboard
+                    </a>{" "}
+                    first.
+                  </p>
+                  <p className="text-xs text-blue-600 mt-2">
+                    Go to Dashboard → Credentials → Create BYO Credential, then
+                    copy the UUID here.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Other providers info */}
+          {(formData.provider === "vonage" ||
+            formData.provider === "telnyx") && (
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <div className="flex items-start space-x-3">
+                <div className="w-6 h-6 bg-purple-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="text-white text-xs font-bold">i</span>
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-purple-800 mb-1">
+                    📱 {formData.provider === "vonage" ? "Vonage" : "Telnyx"}{" "}
+                    Provider
+                  </p>
+                  <p className="text-sm text-purple-700">
+                    Use your existing{" "}
+                    {formData.provider === "vonage" ? "Vonage" : "Telnyx"}{" "}
+                    account to provision numbers. Create credentials in your{" "}
+                    <a
+                      href="https://dashboard.vapi.ai"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-purple-600"
+                    >
+                      VAPI Dashboard
+                    </a>{" "}
+                    first.
+                  </p>
+                  <p className="text-xs text-purple-600 mt-2">
+                    Go to Dashboard → Credentials → Create{" "}
+                    {formData.provider === "vonage" ? "Vonage" : "Telnyx"}{" "}
+                    Credential, then copy the UUID here.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Provider-specific fields */}
+          {formData.provider === "byo-phone-number" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Phone Number *
+                </label>
+                <input
+                  type="tel"
+                  value={formData.number}
+                  onChange={(e) =>
+                    setFormData({ ...formData, number: e.target.value })
+                  }
+                  placeholder="+1234567890"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter the complete phone number with country code
+                </p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Credential ID * (UUID format)
+                </label>
+                <input
+                  type="text"
+                  value={formData.credentialId}
+                  onChange={(e) =>
+                    setFormData({ ...formData, credentialId: e.target.value })
+                  }
+                  placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Must be a valid UUID from your VAPI Dashboard → Credentials →
+                  BYO Credential
+                </p>
+              </div>
+            </>
+          )}
+
+          {formData.provider === "twilio" && (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Twilio Account SID *
+                </label>
+                <input
+                  type="text"
+                  value={formData.accountSid}
+                  onChange={(e) =>
+                    setFormData({ ...formData, accountSid: e.target.value })
+                  }
+                  placeholder="ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Twilio Auth Token *
+                </label>
+                <input
+                  type="password"
+                  value={formData.authToken}
+                  onChange={(e) =>
+                    setFormData({ ...formData, authToken: e.target.value })
+                  }
+                  placeholder="Your Twilio Auth Token"
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                />
+              </div>
+            </>
+          )}
+
+          {(formData.provider === "vonage" ||
+            formData.provider === "telnyx") && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Credential ID * (UUID format)
+              </label>
+              <input
+                type="text"
+                value={formData.credentialId}
+                onChange={(e) =>
+                  setFormData({ ...formData, credentialId: e.target.value })
+                }
+                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Must be a valid UUID from VAPI Dashboard → Credentials →{" "}
+                {formData.provider === "vonage" ? "Vonage" : "Telnyx"}{" "}
+                Credential
+              </p>
+            </div>
+          )}
 
           <div className="flex space-x-3 pt-4">
             <button
@@ -237,6 +493,7 @@ const PhoneNumbers = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [deletingNumber, setDeletingNumber] = useState(null);
+  const [testingNumber, setTestingNumber] = useState(null);
 
   useEffect(() => {
     fetchPhoneNumbers();
@@ -246,6 +503,23 @@ const PhoneNumbers = () => {
     setRefreshing(true);
     await fetchPhoneNumbers();
     setRefreshing(false);
+  };
+
+  const handleTestNumber = async (phoneNumberId) => {
+    setTestingNumber(phoneNumberId);
+    try {
+      const result = await apiService.testPhoneNumber(phoneNumberId);
+
+      if (result.can_make_calls) {
+        toast.success(`✅ ${result.message}`);
+      } else {
+        toast.error(`❌ ${result.message}`);
+      }
+    } catch (error) {
+      toast.error("Failed to test phone number");
+    } finally {
+      setTestingNumber(null);
+    }
   };
 
   const handleCreateNumber = async (numberData) => {
@@ -456,7 +730,13 @@ const PhoneNumbers = () => {
                         {phoneNumber.name}
                       </h3>
                       <p className="text-sm text-gray-600">
-                        {phoneNumber.number}
+                        {phoneNumber.provider === "vapi" &&
+                        !phoneNumber.number.startsWith("+")
+                          ? `SIP: ${
+                              phoneNumber.number ||
+                              `Area ${phoneNumber.areaCode || "Auto-assigned"}`
+                            }`
+                          : phoneNumber.number}
                       </p>
                     </div>
                   </div>
@@ -489,7 +769,9 @@ const PhoneNumbers = () => {
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Type:</span>
                     <span className="font-medium">
-                      {phoneNumber.type || "Voice"}
+                      {phoneNumber.provider === "vapi"
+                        ? "SIP Voice"
+                        : phoneNumber.type || "Voice"}
                     </span>
                   </div>
                   <div className="flex justify-between text-sm">
@@ -501,9 +783,19 @@ const PhoneNumbers = () => {
                 </div>
 
                 <div className="flex space-x-2">
-                  <ButtonHover className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 flex items-center justify-center space-x-1">
-                    <PhoneCall className="w-3 h-3" />
-                    <span>Call</span>
+                  <ButtonHover
+                    onClick={() => handleTestNumber(phoneNumber.id)}
+                    disabled={testingNumber === phoneNumber.id}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-green-700 bg-green-100 rounded-md hover:bg-green-200 flex items-center justify-center space-x-1"
+                  >
+                    {testingNumber === phoneNumber.id ? (
+                      <div className="w-3 h-3 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <PhoneCall className="w-3 h-3" />
+                    )}
+                    <span>
+                      {testingNumber === phoneNumber.id ? "Testing..." : "Test"}
+                    </span>
                   </ButtonHover>
 
                   <ButtonHover className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center justify-center space-x-1">

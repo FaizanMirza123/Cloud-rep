@@ -150,9 +150,30 @@ class ApiService {
     });
   }
 
+  async testPhoneNumber(id) {
+    return this.apiCall(`/phone-numbers/${id}/test`, {
+      method: 'POST'
+    });
+  }
+
   // Call API methods
-  async getCalls(useCache = true) {
-    return this.apiCall('/calls', { cache: useCache });
+  async getCalls(params = {}, useCache = true) {
+    const queryParams = new URLSearchParams();
+    Object.entries(params).forEach(([key, value]) => {
+      if (value !== undefined) queryParams.append(key, value);
+    });
+    
+    return this.apiCall(`/calls${queryParams.toString() ? `?${queryParams.toString()}` : ''}`, {
+      cache: useCache,
+      cacheDuration: 30 * 1000 // 30 seconds for calls
+    });
+  }
+
+  async getAgentCalls(agentId, useCache = true) {
+    return this.apiCall(`/calls?agent_id=${agentId}`, {
+      cache: useCache,
+      cacheDuration: 30 * 1000 // 30 seconds for calls
+    });
   }
 
   async getActiveCalls(useCache = true) {
@@ -181,6 +202,13 @@ class ApiService {
       cacheDuration: 2 * 60 * 1000 // 2 minutes for analytics
     });
   }
+  
+  async getAgentCalls(agentId, useCache = true) {
+    return this.apiCall(`/calls?agent_id=${agentId}`, {
+      cache: useCache,
+      cacheDuration: 30 * 1000 // 30 seconds for calls
+    });
+  }
 
   // Real-time data methods (no caching)
   async getRealtimeData(endpoint) {
@@ -204,7 +232,7 @@ class ApiService {
   }
 
   // Polling for real-time updates
-  startPolling(endpoint, callback, interval = 5000) {
+  startPolling(endpoint, callback, interval = 30000) { // Changed from 5000ms to 30000ms (30 seconds)
     const pollId = setInterval(async () => {
       try {
         const data = await this.getRealtimeData(endpoint);
