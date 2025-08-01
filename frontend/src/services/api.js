@@ -2,7 +2,7 @@ import axios from 'axios';
 
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://fastapi123.duckdns.org';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     this.cache = new Map();
     this.cacheExpiry = new Map();
     this.defaultCacheDuration = 5 * 60 * 1000; // 5 minutes
@@ -153,6 +153,13 @@ class ApiService {
   async testPhoneNumber(id) {
     return this.apiCall(`/phone-numbers/${id}/test`, {
       method: 'POST'
+    });
+  }
+
+  async updatePhoneNumber(id, updateData) {
+    return this.apiCall(`/phone-numbers/${id}`, {
+      method: 'PUT',
+      data: updateData
     });
   }
 

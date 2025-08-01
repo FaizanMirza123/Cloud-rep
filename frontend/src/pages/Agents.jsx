@@ -353,7 +353,7 @@ const Agents = () => {
       // Call the test endpoint
       const response = await fetch(
         `${
-          import.meta.env.VITE_API_BASE_URL || "https://fastapi123.duckdns.org"
+          import.meta.env.VITE_API_BASE_URL || "http://localhost:8000"
         }/agents/${agent.id}/test`,
         {
           method: "POST",

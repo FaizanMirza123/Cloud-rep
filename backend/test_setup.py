@@ -178,7 +178,7 @@ def main():
         print("1. Configure your .env file with VAPI_API_KEY")
         print("2. Start backend: python main.py")
         print("3. Start frontend: cd ../frontend && npm run dev")
-        print("4. Open https://cloud-rep-ten.vercel.app in your browser")
+        print("4. Open http://localhost:5173 in your browser")
     else:
         print("❌ Some tests failed. Please fix the issues above.")
         return 1
