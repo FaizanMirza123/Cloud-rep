@@ -12,9 +12,9 @@ from pathlib import Path
 def main():
     print("🚀 Starting Database Setup...")
     
-    # Find the database file
+    # Find the database file - should be in api folder
     backend_dir = Path(__file__).parent
-    db_path = backend_dir / "EmployAI.db"
+    db_path = backend_dir / "api" / "EmployAI.db"
     
     print(f"📍 Database location: {db_path}")
     

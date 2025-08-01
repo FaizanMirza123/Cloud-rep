@@ -7,6 +7,7 @@ import {
   CardHover,
   ButtonHover,
 } from "../components/AnimationComponents";
+import TestCallDialog from "../components/TestCallDialog";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -308,6 +309,8 @@ const Agents = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [deletingAgent, setDeletingAgent] = useState(null);
   const [testingAgent, setTestingAgent] = useState(null);
+  const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [agentToTest, setAgentToTest] = useState(null);
 
   useEffect(() => {
     fetchAgents();
@@ -346,39 +349,30 @@ const Agents = () => {
     }
   };
 
-  const handleTest = async (agent) => {
+  const handleTest = (agent) => {
+    setAgentToTest(agent);
+    setTestDialogOpen(true);
+  };
+
+  const handleTestCall = async (agent, phoneNumber) => {
     try {
       setTestingAgent(agent.id);
 
-      // Call the test endpoint
-      const response = await fetch(
-        `${
-          import.meta.env.VITE_API_BASE_URL || "https://fastapi123.duckdns.org"
-        }/agents/${agent.id}/test`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
-          body: JSON.stringify({
-            phoneNumber: "+1234567890", // Demo number
-            assistantId: agent.vapi_id || agent.id,
-          }),
-        }
-      );
+      // Use the API service for test call
+      const result = await apiService.testAgent(agent.id, phoneNumber);
 
-      if (response.ok) {
-        const result = await response.json();
-        toast.success("Test call initiated successfully!");
-        console.log("Test call result:", result);
-      } else {
-        const error = await response.json();
-        toast.error(error.detail || "Failed to initiate test call");
-      }
+      toast.success(
+        "Test call initiated successfully! You should receive a call shortly."
+      );
+      console.log("Test call result:", result);
+      setTestDialogOpen(false);
     } catch (error) {
-      toast.error("Failed to initiate test call");
       console.error("Test call error:", error);
+      const errorMessage =
+        error.response?.data?.detail ||
+        error.message ||
+        "Failed to initiate test call";
+      toast.error(errorMessage);
     } finally {
       setTestingAgent(null);
     }
@@ -518,6 +512,18 @@ const Agents = () => {
         agent={viewAgent}
         isOpen={!!viewAgent}
         onClose={() => setViewAgent(null)}
+      />
+
+      {/* Test Call Dialog */}
+      <TestCallDialog
+        isOpen={testDialogOpen}
+        onClose={() => {
+          setTestDialogOpen(false);
+          setAgentToTest(null);
+        }}
+        onTest={handleTestCall}
+        agent={agentToTest}
+        isLoading={testingAgent === agentToTest?.id}
       />
     </PageTransition>
   );

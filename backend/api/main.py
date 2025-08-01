@@ -621,12 +621,25 @@ async def test_agent(
         raise HTTPException(status_code=404, detail="Agent not found")
     
     try:
+        # Validate phone number format
+        phone_number = test_data.get("phoneNumber")
+        if not phone_number:
+            raise HTTPException(status_code=400, detail="Phone number is required for test call")
+        
+        # Ensure phone number is in E.164 format
+        if not phone_number.startswith('+'):
+            # If it's a US number without +1, add it
+            if len(phone_number) == 10 and phone_number.isdigit():
+                phone_number = f"+1{phone_number}"
+            else:
+                raise HTTPException(status_code=400, detail="Phone number must be in E.164 format (e.g., +1234567890)")
+        
         # Create a test call via VAPI
         vapi_payload = {
             "assistantId": agent.vapi_id or agent.id,
             "phoneNumberId": test_data.get("phoneNumberId"),  # Optional
             "customer": {
-                "number": test_data.get("phoneNumber", "+1234567890")  # Demo number
+                "number": phone_number
             },
             "metadata": {
                 "test": True,
@@ -645,7 +658,7 @@ async def test_agent(
             vapi_id=vapi_call.get("id"),
             user_id=current_user.id,
             agent_id=agent.id,
-            phone_number=test_data.get("phoneNumber", "+1234567890"),
+            phone_number=phone_number,
             direction="outbound",
             status="initiated",
             type="test"
@@ -1029,6 +1042,86 @@ async def test_phone_number(phone_id: str, current_user: User = Depends(get_curr
             "message": f"Error testing phone number: {str(e)}"
         }
 
+async def sync_user_calls_from_vapi(current_user: User, db: Session = None):
+    """Helper function to sync and filter user's calls from VAPI"""
+    try:
+        # Get user's phone numbers and agents to filter VAPI calls
+        user_phone_numbers = db.query(PhoneNumber).filter(PhoneNumber.user_id == current_user.id).all()
+        user_agents = db.query(Agent).filter(Agent.user_id == current_user.id).all()
+        
+        phone_vapi_ids = [pn.vapi_id for pn in user_phone_numbers if pn.vapi_id]
+        agent_vapi_ids = [ag.vapi_id for ag in user_agents if ag.vapi_id]
+        
+        # Fetch all calls from VAPI
+        vapi_calls = await call_vapi_api("/call")
+        
+        # Filter calls that belong to this user
+        user_calls = []
+        
+        for vapi_call in vapi_calls:
+            # Check if this call belongs to the user via phone number or assistant
+            call_phone_id = vapi_call.get("phoneNumber", {}).get("id")
+            call_assistant_id = vapi_call.get("assistant", {}).get("id")
+            
+            belongs_to_user = (
+                call_phone_id in phone_vapi_ids or 
+                call_assistant_id in agent_vapi_ids
+            )
+            
+            if belongs_to_user:
+                # Find matching local records
+                phone_number = next((pn for pn in user_phone_numbers if pn.vapi_id == call_phone_id), None)
+                agent = next((ag for ag in user_agents if ag.vapi_id == call_assistant_id), None)
+                
+                # Check if we have this call in local database
+                local_call = db.query(Call).filter(Call.vapi_id == vapi_call.get("id")).first()
+                
+                if not local_call:
+                    # Create new call record
+                    call_id = str(uuid.uuid4())
+                    local_call = Call(
+                        id=call_id,
+                        vapi_id=vapi_call.get("id"),
+                        user_id=current_user.id,
+                        agent_id=agent.id if agent else None,
+                        phone_number_id=phone_number.id if phone_number else None,
+                        phone_number=vapi_call.get("phoneNumber", {}).get("number"),
+                        customer_number=vapi_call.get("customer", {}).get("number"),
+                        direction=vapi_call.get("type", "unknown"),
+                        status=vapi_call.get("status"),
+                        duration=vapi_call.get("duration"),
+                        cost=vapi_call.get("cost"),
+                        recording_url=vapi_call.get("recordingUrl"),
+                        transcript=vapi_call.get("transcript"),
+                        ended_reason=vapi_call.get("endedReason"),
+                        started_at=datetime.fromisoformat(vapi_call.get("startedAt").replace('Z', '+00:00')) if vapi_call.get("startedAt") else None,
+                        ended_at=datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00')) if vapi_call.get("endedAt") else None,
+                        created_at=datetime.fromisoformat(vapi_call.get("createdAt").replace('Z', '+00:00')) if vapi_call.get("createdAt") else datetime.utcnow(),
+                        updated_at=datetime.fromisoformat(vapi_call.get("updatedAt").replace('Z', '+00:00')) if vapi_call.get("updatedAt") else datetime.utcnow()
+                    )
+                    db.add(local_call)
+                else:
+                    # Update existing call with latest VAPI data
+                    local_call.status = vapi_call.get("status", local_call.status)
+                    local_call.duration = vapi_call.get("duration", local_call.duration)
+                    local_call.cost = vapi_call.get("cost", local_call.cost)
+                    local_call.recording_url = vapi_call.get("recordingUrl", local_call.recording_url)
+                    local_call.transcript = vapi_call.get("transcript", local_call.transcript)
+                    local_call.ended_reason = vapi_call.get("endedReason", local_call.ended_reason)
+                    if vapi_call.get("endedAt") and not local_call.ended_at:
+                        local_call.ended_at = datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00'))
+                    local_call.updated_at = datetime.utcnow()
+                
+                user_calls.append(local_call)
+        
+        db.commit()
+        return user_calls
+        
+    except Exception as e:
+        print(f"Error syncing calls from VAPI: {str(e)}")
+        # Fallback to local database
+        return db.query(Call).filter(Call.user_id == current_user.id).all()
+
 # Call routes
 @app.get("/calls")
 async def get_calls(
@@ -1037,46 +1130,145 @@ async def get_calls(
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
-    """Get all calls for the current user with optional filtering"""
-    query = db.query(Call).filter(Call.user_id == current_user.id)
-    
-    # Apply additional filters if provided
-    if agent_id:
-        query = query.filter(Call.agent_id == agent_id)
-    
-    # Apply ordering
-    query = query.order_by(desc(Call.created_at))
-    
-    # Apply limit if provided
-    if limit:
-        query = query.limit(limit)
-    
-    calls = query.all()
-    return calls
+    """Get all calls for the current user with optional filtering - synced from VAPI"""
+    try:
+        # Sync calls from VAPI
+        calls = await sync_user_calls_from_vapi(current_user, db)
+        
+        # Apply agent filter if provided
+        if agent_id:
+            calls = [call for call in calls if call.agent_id == agent_id]
+        
+        # Sort by created_at descending
+        calls.sort(key=lambda x: x.created_at or datetime.min, reverse=True)
+        
+        # Apply limit if provided
+        if limit:
+            calls = calls[:limit]
+        
+        return calls
+        
+    except Exception as e:
+        print(f"Error fetching calls: {str(e)}")
+        # Fallback to local database only
+        query = db.query(Call).filter(Call.user_id == current_user.id)
+        if agent_id:
+            query = query.filter(Call.agent_id == agent_id)
+        query = query.order_by(desc(Call.created_at))
+        if limit:
+            query = query.limit(limit)
+        return query.all()
 
 @app.get("/calls/active")
 async def get_active_calls(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get active calls"""
-    active_calls = db.query(Call).filter(
-        and_(Call.user_id == current_user.id, Call.status.in_(["queued", "ringing", "in-progress"]))
-    ).all()
-    return active_calls
+    """Get active calls - synced from VAPI"""
+    try:
+        # Sync calls from VAPI
+        all_calls = await sync_user_calls_from_vapi(current_user, db)
+        
+        # Filter for active statuses
+        active_statuses = ["queued", "ringing", "in-progress", "forwarding", "speaking"]
+        active_calls = [call for call in all_calls if call.status in active_statuses]
+        
+        # Sort by started_at or created_at
+        active_calls.sort(key=lambda x: x.started_at or x.created_at or datetime.min, reverse=True)
+        
+        return active_calls
+        
+    except Exception as e:
+        print(f"Error fetching active calls: {str(e)}")
+        # Fallback to local database
+        active_calls = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.status.in_(["queued", "ringing", "in-progress", "forwarding", "speaking"]))
+        ).order_by(desc(Call.started_at)).all()
+        return active_calls
 
 @app.get("/calls/missed")
 async def get_missed_calls(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get missed calls"""
-    missed_calls = db.query(Call).filter(
-        and_(Call.user_id == current_user.id, Call.ended_reason == "missed")
-    ).order_by(desc(Call.created_at)).all()
-    return missed_calls
+    """Get missed calls - synced from VAPI"""
+    try:
+        # Sync calls from VAPI
+        all_calls = await sync_user_calls_from_vapi(current_user, db)
+        
+        # Filter for missed calls (ended reason or status indicates missed)
+        missed_calls = [
+            call for call in all_calls 
+            if call.ended_reason in ["no-answer", "missed", "busy"] or 
+               (call.status == "ended" and call.duration == 0)
+        ]
+        
+        # Sort by created_at descending
+        missed_calls.sort(key=lambda x: x.created_at or datetime.min, reverse=True)
+        
+        return missed_calls
+        
+    except Exception as e:
+        print(f"Error fetching missed calls: {str(e)}")
+        # Fallback to local database
+        missed_calls = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.ended_reason.in_(["no-answer", "missed", "busy"]))
+        ).order_by(desc(Call.created_at)).all()
+        return missed_calls
 
 @app.get("/calls/recordings")
 async def get_call_recordings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get calls with recordings"""
-    recorded_calls = db.query(Call).filter(
-        and_(Call.user_id == current_user.id, Call.recording_url.isnot(None))
-    ).order_by(desc(Call.created_at)).all()
-    return recorded_calls
+    """Get calls with recordings - synced from VAPI"""
+    try:
+        # Sync calls from VAPI
+        all_calls = await sync_user_calls_from_vapi(current_user, db)
+        
+        # Filter for calls with recordings
+        recorded_calls = [
+            call for call in all_calls 
+            if call.recording_url and call.recording_url.strip()
+        ]
+        
+        # Sort by ended_at or created_at descending
+        recorded_calls.sort(key=lambda x: x.ended_at or x.created_at or datetime.min, reverse=True)
+        
+        return recorded_calls
+        
+    except Exception as e:
+        print(f"Error fetching call recordings: {str(e)}")
+        # Fallback to local database
+        recorded_calls = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.recording_url.isnot(None))
+        ).order_by(desc(Call.ended_at)).all()
+        return recorded_calls
+
+@app.get("/calls/queues")
+async def get_call_queues(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get queued calls - synced from VAPI"""
+    try:
+        # Sync calls from VAPI
+        all_calls = await sync_user_calls_from_vapi(current_user, db)
+        
+        # Filter for queued calls
+        queued_calls = [call for call in all_calls if call.status == "queued"]
+        
+        # Sort by created_at ascending (FIFO queue)
+        queued_calls.sort(key=lambda x: x.created_at or datetime.min)
+        
+        return {
+            "queued_calls": queued_calls,
+            "queue_length": len(queued_calls),
+            "total_wait_time": sum([
+                (datetime.utcnow() - (call.created_at or datetime.utcnow())).total_seconds() 
+                for call in queued_calls
+            ])
+        }
+        
+    except Exception as e:
+        print(f"Error fetching call queues: {str(e)}")
+        # Fallback to local database
+        queued_calls = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.status == "queued")
+        ).order_by(Call.created_at).all()
+        return {
+            "queued_calls": queued_calls,
+            "queue_length": len(queued_calls),
+            "total_wait_time": 0
+        }
 
 @app.post("/calls")
 async def create_call(call_data: CallCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -1087,9 +1279,17 @@ async def create_call(call_data: CallCreate, current_user: User = Depends(get_cu
         if not agent:
             raise HTTPException(status_code=404, detail="Agent not found")
         
+        # Validate phone number format
+        customer_number = call_data.customer_number
+        if not customer_number.startswith('+'):
+            if len(customer_number) == 10 and customer_number.isdigit():
+                customer_number = f"+1{customer_number}"
+            else:
+                raise HTTPException(status_code=400, detail="Customer phone number must be in E.164 format (e.g., +1234567890)")
+        
         vapi_payload = {
-            "customer": {"number": call_data.customer_number},
-            "assistantId": agent.vapi_id
+            "customer": {"number": customer_number},
+            "assistantId": agent.vapi_id or agent.id
         }
         
         if call_data.phone_number_id:
@@ -1110,7 +1310,7 @@ async def create_call(call_data: CallCreate, current_user: User = Depends(get_cu
             user_id=current_user.id,
             agent_id=call_data.agent_id,
             phone_number_id=call_data.phone_number_id,
-            customer_number=call_data.customer_number,
+            customer_number=customer_number,
             direction="outbound",
             status=vapi_call.get("status", "queued"),
             started_at=datetime.utcnow()
@@ -1125,69 +1325,290 @@ async def create_call(call_data: CallCreate, current_user: User = Depends(get_cu
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to create call: {str(e)}")
 
+@app.get("/calls/{call_id}")
+async def get_call(call_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get a specific call with latest data from VAPI"""
+    call = db.query(Call).filter(and_(Call.id == call_id, Call.user_id == current_user.id)).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    
+    try:
+        # Try to get updated info from VAPI
+        if call.vapi_id:
+            vapi_call = await call_vapi_api(f"/call/{call.vapi_id}")
+            
+            if vapi_call:
+                # Update local call with latest VAPI data
+                call.status = vapi_call.get("status", call.status)
+                call.duration = vapi_call.get("duration", call.duration)
+                call.cost = vapi_call.get("cost", call.cost)
+                call.recording_url = vapi_call.get("recordingUrl", call.recording_url)
+                call.transcript = vapi_call.get("transcript", call.transcript)
+                call.ended_reason = vapi_call.get("endedReason", call.ended_reason)
+                
+                if vapi_call.get("endedAt") and not call.ended_at:
+                    call.ended_at = datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00'))
+                
+                call.updated_at = datetime.utcnow()
+                db.commit()
+                
+    except Exception as e:
+        print(f"Failed to sync call from VAPI: {str(e)}")
+        # Continue with local data
+    
+    return call
+
+@app.patch("/calls/{call_id}/end")
+async def end_call(call_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """End a call manually"""
+    call = db.query(Call).filter(and_(Call.id == call_id, Call.user_id == current_user.id)).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    
+    if call.status in ["completed", "ended", "failed"]:
+        raise HTTPException(status_code=400, detail="Call is already ended")
+    
+    try:
+        # End call in VAPI
+        if call.vapi_id:
+            await call_vapi_api(f"/call/{call.vapi_id}/end", method="POST")
+        
+        # Update local call
+        call.status = "ended"
+        call.ended_at = datetime.utcnow()
+        call.ended_reason = "manually-ended"
+        call.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "message": "Call ended successfully",
+            "call": call
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to end call: {str(e)}")
+
+@app.get("/calls/{call_id}/transcript")
+async def get_call_transcript(call_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get the transcript for a specific call"""
+    call = db.query(Call).filter(and_(Call.id == call_id, Call.user_id == current_user.id)).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    
+    try:
+        # Try to get latest transcript from VAPI
+        if call.vapi_id:
+            vapi_call = await call_vapi_api(f"/call/{call.vapi_id}")
+            if vapi_call and vapi_call.get("transcript"):
+                call.transcript = vapi_call.get("transcript")
+                call.updated_at = datetime.utcnow()
+                db.commit()
+        
+        return {
+            "call_id": call.id,
+            "transcript": call.transcript,
+            "has_transcript": bool(call.transcript and call.transcript.strip())
+        }
+        
+    except Exception as e:
+        print(f"Failed to get transcript from VAPI: {str(e)}")
+        return {
+            "call_id": call.id,
+            "transcript": call.transcript,
+            "has_transcript": bool(call.transcript and call.transcript.strip())
+        }
+
+@app.get("/calls/{call_id}/recording")
+async def get_call_recording(call_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get the recording URL for a specific call"""
+    call = db.query(Call).filter(and_(Call.id == call_id, Call.user_id == current_user.id)).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    
+    try:
+        # Try to get latest recording URL from VAPI
+        if call.vapi_id:
+            vapi_call = await call_vapi_api(f"/call/{call.vapi_id}")
+            if vapi_call and vapi_call.get("recordingUrl"):
+                call.recording_url = vapi_call.get("recordingUrl")
+                call.updated_at = datetime.utcnow()
+                db.commit()
+        
+        return {
+            "call_id": call.id,
+            "recording_url": call.recording_url,
+            "has_recording": bool(call.recording_url and call.recording_url.strip())
+        }
+        
+    except Exception as e:
+        print(f"Failed to get recording from VAPI: {str(e)}")
+        return {
+            "call_id": call.id,
+            "recording_url": call.recording_url,
+            "has_recording": bool(call.recording_url and call.recording_url.strip())
+        }
+
 # Analytics routes
 @app.get("/analytics/dashboard")
 async def get_dashboard_analytics(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get dashboard analytics data specific to the current user"""
-    # Get call statistics
-    total_calls = db.query(Call).filter(Call.user_id == current_user.id).count()
-    total_minutes = db.query(Call).filter(Call.user_id == current_user.id).with_entities(Call.duration).all()
-    total_duration = sum([call.duration or 0 for call in total_minutes]) / 60  # Convert to minutes
+    """Get dashboard analytics data specific to the current user - synced from VAPI"""
+    try:
+        # Sync calls from VAPI first
+        all_calls = await sync_user_calls_from_vapi(current_user, db)
+        
+        # Calculate statistics from synced data
+        total_calls = len(all_calls)
+        
+        # Calculate total duration and cost
+        total_duration = sum([call.duration or 0 for call in all_calls]) / 60  # Convert to minutes
+        total_cost = sum([float(call.cost or 0) for call in all_calls])
+        
+        # Get agent and phone number counts
+        total_agents = db.query(Agent).filter(Agent.user_id == current_user.id).count()
+        active_agents = db.query(Agent).filter(and_(Agent.user_id == current_user.id, Agent.status == "active")).count()
+        active_phone_numbers = db.query(PhoneNumber).filter(and_(PhoneNumber.user_id == current_user.id, PhoneNumber.status == "active")).count()
+        
+        # Calculate recent calls (last 7 days)
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        recent_calls = len([
+            call for call in all_calls 
+            if call.created_at and call.created_at >= seven_days_ago
+        ])
+        
+        # Calculate average call duration for completed calls
+        completed_calls = [
+            call for call in all_calls 
+            if call.status in ["completed", "ended"] and call.duration and call.duration > 0
+        ]
+        
+        avg_duration = 0
+        if completed_calls:
+            avg_duration = sum([call.duration or 0 for call in completed_calls]) / len(completed_calls) / 60  # in minutes
+        
+        # Calculate today's calls
+        today = datetime.utcnow().date()
+        calls_today = len([
+            call for call in all_calls 
+            if call.created_at and call.created_at.date() >= today
+        ])
+        
+        # Calculate this month's calls
+        this_month = datetime.utcnow().replace(day=1)
+        calls_this_month = len([
+            call for call in all_calls 
+            if call.created_at and call.created_at >= this_month
+        ])
+        
+        # Calculate active calls
+        active_statuses = ["queued", "ringing", "in-progress", "forwarding", "speaking"]
+        active_calls_count = len([
+            call for call in all_calls 
+            if call.status in active_statuses
+        ])
+        
+        # Calculate missed calls
+        missed_calls_count = len([
+            call for call in all_calls 
+            if call.ended_reason in ["no-answer", "missed", "busy"] or 
+               (call.status == "ended" and (call.duration or 0) == 0)
+        ])
+        
+        # Calculate recorded calls
+        recorded_calls_count = len([
+            call for call in all_calls 
+            if call.recording_url and call.recording_url.strip()
+        ])
+        
+        # Calculate queued calls
+        queued_calls_count = len([
+            call for call in all_calls 
+            if call.status == "queued"
+        ])
+        
+        # Average cost per call
+        avg_cost_per_call = 0
+        if total_calls > 0:
+            avg_cost_per_call = total_cost / total_calls
+        
+        return {
+            "totalAgents": total_agents,
+            "activeAgents": active_agents,
+            "totalCalls": total_calls,
+            "recentCalls": recent_calls,
+            "totalCost": round(total_cost, 2),
+            "averageDuration": round(avg_duration, 2),
+            "totalCallMinutes": round(total_duration, 2),
+            "activePhoneNumbers": active_phone_numbers,
+            "averageCostPerCall": round(avg_cost_per_call, 2),
+            "callsToday": calls_today,
+            "callsThisMonth": calls_this_month,
+            "activeCalls": active_calls_count,
+            "missedCalls": missed_calls_count,
+            "recordedCalls": recorded_calls_count,
+            "queuedCalls": queued_calls_count
+        }
+        
+    except Exception as e:
+        print(f"Error in dashboard analytics: {str(e)}")
+        # Fallback to local database only
+        total_calls = db.query(Call).filter(Call.user_id == current_user.id).count()
+        total_minutes = db.query(Call).filter(Call.user_id == current_user.id).with_entities(Call.duration).all()
+        total_duration = sum([call.duration or 0 for call in total_minutes]) / 60
+        
+        total_agents = db.query(Agent).filter(Agent.user_id == current_user.id).count()
+        active_agents = db.query(Agent).filter(and_(Agent.user_id == current_user.id, Agent.status == "active")).count()
+        active_phone_numbers = db.query(PhoneNumber).filter(and_(PhoneNumber.user_id == current_user.id, PhoneNumber.status == "active")).count()
+        
+        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        recent_calls = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.created_at >= seven_days_ago)
+        ).count()
+        
+        calls_with_cost = db.query(Call).filter(Call.user_id == current_user.id).with_entities(Call.cost).all()
+        total_cost = sum([float(call.cost or 0) for call in calls_with_cost])
+        
+        completed_calls = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.status == "completed", Call.duration != None)
+        ).all()
+        
+        avg_duration = 0
+        if completed_calls:
+            avg_duration = sum([call.duration or 0 for call in completed_calls]) / len(completed_calls) / 60
+        
+        today = datetime.utcnow().date()
+        calls_today = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.created_at >= today)
+        ).count()
+        
+        this_month = datetime.utcnow().replace(day=1)
+        calls_this_month = db.query(Call).filter(
+            and_(Call.user_id == current_user.id, Call.created_at >= this_month)
+        ).count()
+        
+        avg_cost_per_call = 0
+        if total_calls > 0:
+            avg_cost_per_call = total_cost / total_calls
+        
+        return {
+            "totalAgents": total_agents,
+            "activeAgents": active_agents,
+            "totalCalls": total_calls,
+            "recentCalls": recent_calls,
+            "totalCost": round(total_cost, 2),
+            "averageDuration": round(avg_duration, 2),
+            "totalCallMinutes": round(total_duration, 2),
+            "activePhoneNumbers": active_phone_numbers,
+            "averageCostPerCall": round(avg_cost_per_call, 2),
+            "callsToday": calls_today,
+            "callsThisMonth": calls_this_month,
+            "activeCalls": 0,
+            "missedCalls": 0,
+            "recordedCalls": 0,
+            "queuedCalls": 0
+        }
+  
     
-    # Get agent and phone number counts
-    total_agents = db.query(Agent).filter(Agent.user_id == current_user.id).count()
-    active_agents = db.query(Agent).filter(and_(Agent.user_id == current_user.id, Agent.status == "active")).count()
-    active_phone_numbers = db.query(PhoneNumber).filter(and_(PhoneNumber.user_id == current_user.id, PhoneNumber.status == "active")).count()
-    
-    # Calculate recent calls (last 7 days)
-    seven_days_ago = datetime.utcnow() - timedelta(days=7)
-    recent_calls = db.query(Call).filter(
-        and_(Call.user_id == current_user.id, Call.created_at >= seven_days_ago)
-    ).count()
-    
-    # Calculate total cost (sample calculation, adjust as needed)
-    calls_with_cost = db.query(Call).filter(Call.user_id == current_user.id).with_entities(Call.cost).all()
-    total_cost = sum([call.cost or 0 for call in calls_with_cost])
-    
-    # Calculate average call duration for completed calls
-    completed_calls = db.query(Call).filter(
-        and_(Call.user_id == current_user.id, Call.status == "completed", Call.duration != None)
-    ).all()
-    
-    avg_duration = 0
-    if completed_calls:
-        avg_duration = sum([call.duration or 0 for call in completed_calls]) / len(completed_calls) / 60  # in minutes
-    
-    # Calculate today's calls
-    today = datetime.utcnow().date()
-    calls_today = db.query(Call).filter(
-        and_(Call.user_id == current_user.id, Call.created_at >= today)
-    ).count()
-    
-    # Calculate this month's calls
-    this_month = datetime.utcnow().replace(day=1)
-    calls_this_month = db.query(Call).filter(
-        and_(Call.user_id == current_user.id, Call.created_at >= this_month)
-    ).count()
-    
-    # Average cost per call
-    avg_cost_per_call = 0
-    if total_calls > 0:
-        avg_cost_per_call = total_cost / total_calls
-    
-    return {
-        "totalAgents": total_agents,
-        "activeAgents": active_agents,
-        "totalCalls": total_calls,
-        "recentCalls": recent_calls,
-        "totalCost": total_cost,
-        "averageDuration": avg_duration,
-        "totalCallMinutes": round(total_duration, 2),
-        "activePhoneNumbers": active_phone_numbers,
-        "averageCostPerCall": round(avg_cost_per_call, 2),
-        "callsToday": calls_today,
-        "callsThisMonth": calls_this_month
-    }
 
 # Webhook endpoint for VAPI events
 @app.post("/webhook/vapi")
@@ -1398,4 +1819,196 @@ async def vapi_health_check():
 @app.get("/")
 async def root():
     return {"message": "EmployAI API", "version": "1.0.0"}
+
+@app.post("/webhook/vapi")
+async def vapi_webhook(request: Request, db: Session = Depends(get_db)):
+    """Handle VAPI webhook events for real-time call updates"""
+    try:
+        data = await request.json()
+        message_type = data.get("message", {}).get("type")
+        call_data = data.get("message", {}).get("call", {})
+        
+        if not call_data or not message_type:
+            return {"status": "ignored", "reason": "no call data or message type"}
+        
+        vapi_id = call_data.get("id")
+        if not vapi_id:
+            return {"status": "ignored", "reason": "no VAPI call ID"}
+        
+        # Find the call in our database
+        call = db.query(Call).filter(Call.vapi_id == vapi_id).first()
+        
+        if not call:
+            # This might be a call initiated outside our system
+            # Try to create a record if we can determine the user
+            phone_number = call_data.get("phoneNumber", {}).get("number")
+            if phone_number:
+                # Try to find phone number in our system
+                local_phone = db.query(PhoneNumber).filter(PhoneNumber.number == phone_number).first()
+                if local_phone:
+                    # Create a new call record
+                    call_id = str(uuid.uuid4())
+                    call = Call(
+                        id=call_id,
+                        vapi_id=vapi_id,
+                        user_id=local_phone.user_id,
+                        phone_number_id=local_phone.id,
+                        customer_number=call_data.get("customer", {}).get("number", ""),
+                        direction="inbound" if call_data.get("type") == "inboundPhoneCall" else "outbound",
+                        status=call_data.get("status", "in-progress"),
+                        started_at=datetime.utcnow()
+                    )
+                    
+                    if call_data.get("assistantId"):
+                        agent = db.query(Agent).filter(
+                            and_(Agent.vapi_id == call_data.get("assistantId"), Agent.user_id == local_phone.user_id)
+                        ).first()
+                        if agent:
+                            call.agent_id = agent.id
+                    
+                    db.add(call)
+                    db.commit()
+                    db.refresh(call)
+            
+            if not call:
+                return {"status": "ignored", "reason": "call not found in system"}
+        
+        # Update call based on message type
+        if message_type == "status-update":
+            call.status = call_data.get("status", call.status)
+            
+        elif message_type == "transcript":
+            # Append to existing transcript or create new
+            new_transcript = call_data.get("transcript", "")
+            if new_transcript:
+                if call.transcript:
+                    call.transcript += "\n" + new_transcript
+                else:
+                    call.transcript = new_transcript
+            
+        elif message_type == "hang":
+            call.status = "completed"
+            call.ended_at = datetime.utcnow()
+            call.ended_reason = call_data.get("endedReason", "completed")
+            
+            # Update final call details
+            if call_data.get("duration"):
+                call.duration = call_data.get("duration")
+            if call_data.get("cost"):
+                call.cost = call_data.get("cost")
+            if call_data.get("recordingUrl"):
+                call.recording_url = call_data.get("recordingUrl")
+            if call_data.get("transcript"):
+                call.transcript = call_data.get("transcript")
+        
+        elif message_type == "speech-update":
+            # Handle speech updates (optional, for real-time transcription)
+            speech_data = call_data.get("speech", {})
+            if speech_data.get("text"):
+                # Could store intermediate transcripts here
+                pass
+        
+        elif message_type == "function-call":
+            # Handle function calls made by the assistant
+            function_data = call_data.get("functionCall", {})
+            # Log function calls for analytics
+            print(f"Function called: {function_data.get('name')} with args: {function_data.get('parameters')}")
+        
+        # Update timestamp
+        call.updated_at = datetime.utcnow()
+        
+        db.commit()
+        
+        return {
+            "status": "success", 
+            "message": f"Processed {message_type} for call {call.id}",
+            "call_id": call.id
+        }
+        
+    except Exception as e:
+        print(f"Webhook error: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+@app.get("/calls/analytics")
+async def get_call_analytics(
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db),
+    days: int = 30
+):
+    """Get call analytics for the user"""
+    try:
+        # Sync recent calls first
+        await sync_user_calls_from_vapi(current_user.id, db)
+        
+        # Calculate date range
+        end_date = datetime.utcnow()
+        start_date = end_date - timedelta(days=days)
+        
+        # Get calls in date range
+        calls = db.query(Call).filter(
+            and_(
+                Call.user_id == current_user.id,
+                Call.started_at >= start_date,
+                Call.started_at <= end_date
+            )
+        ).all()
+        
+        # Calculate analytics
+        total_calls = len(calls)
+        successful_calls = len([c for c in calls if c.status == "completed"])
+        failed_calls = len([c for c in calls if c.status in ["failed", "no-answer", "busy"]])
+        total_duration = sum([c.duration or 0 for c in calls])
+        total_cost = sum([c.cost or 0 for c in calls])
+        
+        # Calls by day
+        calls_by_day = {}
+        for call in calls:
+            day = call.started_at.date().isoformat()
+            if day not in calls_by_day:
+                calls_by_day[day] = {"inbound": 0, "outbound": 0}
+            calls_by_day[day][call.direction] += 1
+        
+        # Calls by status
+        calls_by_status = {}
+        for call in calls:
+            status = call.status or "unknown"
+            calls_by_status[status] = calls_by_status.get(status, 0) + 1
+        
+        # Top agents by call volume
+        agent_stats = {}
+        for call in calls:
+            if call.agent_id:
+                agent = db.query(Agent).filter(Agent.id == call.agent_id).first()
+                if agent:
+                    agent_name = agent.name
+                    if agent_name not in agent_stats:
+                        agent_stats[agent_name] = {"total": 0, "successful": 0, "duration": 0}
+                    agent_stats[agent_name]["total"] += 1
+                    if call.status == "completed":
+                        agent_stats[agent_name]["successful"] += 1
+                    agent_stats[agent_name]["duration"] += call.duration or 0
+        
+        return {
+            "period_days": days,
+            "summary": {
+                "total_calls": total_calls,
+                "successful_calls": successful_calls,
+                "failed_calls": failed_calls,
+                "success_rate": round((successful_calls / total_calls * 100) if total_calls > 0 else 0, 2),
+                "total_duration_minutes": round(total_duration / 60, 2) if total_duration else 0,
+                "average_duration_minutes": round((total_duration / total_calls / 60), 2) if total_calls > 0 else 0,
+                "total_cost": round(total_cost, 4) if total_cost else 0,
+                "average_cost_per_call": round((total_cost / total_calls), 4) if total_calls > 0 else 0
+            },
+            "calls_by_day": calls_by_day,
+            "calls_by_status": calls_by_status,
+            "agent_statistics": agent_stats
+        }
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get analytics: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 

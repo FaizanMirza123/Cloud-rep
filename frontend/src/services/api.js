@@ -255,6 +255,52 @@ class ApiService {
   stopPolling(pollId) {
     clearInterval(pollId);
   }
+
+  // Agent testing
+  async testAgent(agentId, phoneNumber) {
+    return this.apiCall(`/agents/${agentId}/test`, {
+      method: 'POST',
+      data: {
+        phoneNumber,
+        assistantId: agentId
+      }
+    });
+  }
+
+  // Phone number utilities
+  static validatePhoneNumber(phone) {
+    // Remove all non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    // Check if it's a valid US phone number (10 digits)
+    if (digits.length === 10) {
+      return `+1${digits}`;
+    }
+    
+    // Check if it's already in E.164 format
+    if (phone.startsWith('+') && digits.length >= 10) {
+      return phone;
+    }
+    
+    return null;
+  }
+
+  static formatPhoneNumber(value) {
+    // Remove all non-digit characters
+    const digits = value.replace(/\D/g, '');
+    
+    // Format as (XXX) XXX-XXXX for US numbers
+    if (digits.length <= 10) {
+      if (digits.length >= 6) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+      } else if (digits.length >= 3) {
+        return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+      } else {
+        return digits;
+      }
+    }
+    return value;
+  }
 }
 
 export default new ApiService();

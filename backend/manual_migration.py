@@ -1,8 +1,8 @@
 import sqlite3
 import os
 
-# Path to the database
-db_path = r"D:\Work\Cloud-rep\backend\EmployAI.db"
+# Path to the database - should be in api folder
+db_path = r"D:\Work\Cloud-rep\backend\api\EmployAI.db"
 
 print(f"Working with database: {db_path}")
 

@@ -7,8 +7,8 @@ import sys
 import os
 import sqlite3
 
-# Navigate to the correct database file
-db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "EmployAI.db")
+# Navigate to the correct database file - should be in the same api folder
+db_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "EmployAI.db")
 print(f"Checking database at: {db_path}")
 
 if not os.path.exists(db_path):
