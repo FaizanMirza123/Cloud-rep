@@ -5,7 +5,7 @@ from datetime import datetime
 import os
 
 # Database URL
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./api/EmployAI.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./EmployAI.db")
 
 # Create engine
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
