@@ -50,9 +50,9 @@ cd ..
 
 echo "================================================="
 echo "   EmployAI Application Started!"
-echo "   Backend: http://localhost:8000"
+echo "   Backend: https://fastapi123.duckdns.org"
 echo "   Frontend: https://cloud-rep-ten.vercel.app"
-echo "   API Docs: http://localhost:8000/docs"
+echo "   API Docs: https://fastapi123.duckdns.org/docs"
 echo "================================================="
 echo "Press Ctrl+C to stop both servers"
 

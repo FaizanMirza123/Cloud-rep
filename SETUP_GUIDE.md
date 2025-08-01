@@ -80,7 +80,7 @@ npm install
 cp .env.example .env
 
 # Edit .env file
-# Required: VITE_API_BASE_URL=http://localhost:8000
+# Required: VITE_API_BASE_URL=https://fastapi123.duckdns.org
 # Optional: VITE_GOOGLE_CLIENT_ID for Google OAuth
 ```
 
@@ -109,7 +109,7 @@ GOOGLE_CLIENT_SECRET=your_google_client_secret
 #### Frontend (.env)
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=https://fastapi123.duckdns.org
 VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```
 
@@ -132,8 +132,8 @@ npm run dev
 ### 5. Access the Application
 
 - Frontend: https://cloud-rep-ten.vercel.app
-- Backend API: http://localhost:8000
-- API Documentation: http://localhost:8000/docs
+- Backend API: https://fastapi123.duckdns.org
+- API Documentation: https://fastapi123.duckdns.org/docs
 
 ## 🔧 Key Features Usage
 
@@ -272,4 +272,4 @@ This implementation provides a complete, production-ready EmployAI application w
 
 - **VAPI Integration Guide**: See `VAPI_INTEGRATION_FIXES.md` for details on the VAPI API integration
 - **VAPI SIP Numbers**: See `docs/vapi-sip-numbers.md` for information about VAPI SIP phone numbers
-- **API Documentation**: Available at `http://localhost:8000/docs` when the backend is running
+- **API Documentation**: Available at `https://fastapi123.duckdns.org/docs` when the backend is running

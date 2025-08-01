@@ -78,12 +78,12 @@ def test_backend_startup():
             
             # Test health endpoint
             try:
-                response = requests.get('http://localhost:8000/health', timeout=5)
+                response = requests.get('https://fastapi123.duckdns.org/health', timeout=5)
                 if response.status_code == 200:
                     print("✅ Health endpoint responding")
                     
                     # Test API docs
-                    response = requests.get('http://localhost:8000/docs', timeout=5)
+                    response = requests.get('https://fastapi123.duckdns.org/docs', timeout=5)
                     if response.status_code == 200:
                         print("✅ API documentation accessible")
                     else:

@@ -1,4 +1,11 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from "react";
 import axios from "axios";
 import toast from "react-hot-toast";
 
@@ -17,7 +24,8 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   // Set up axios defaults
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:8000";
+  const API_BASE_URL =
+    import.meta.env.VITE_API_BASE_URL || "https://fastapi123.duckdns.org";
   axios.defaults.baseURL = API_BASE_URL;
 
   // Configure axios interceptors
