@@ -23,6 +23,8 @@ import {
   AlertCircle,
   RefreshCw,
   X,
+  Settings,
+  Link,
 } from "lucide-react";
 
 // Country codes with flags and dial codes
@@ -479,6 +481,162 @@ const CreatePhoneNumberModal = ({ isOpen, onClose, onCreateNumber }) => {
   );
 };
 
+const EditPhoneNumberModal = ({ isOpen, onClose, phoneNumber, onUpdateNumber }) => {
+  const [formData, setFormData] = useState({
+    name: "",
+    assistantId: "",
+  });
+  const [agents, setAgents] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (phoneNumber) {
+      setFormData({
+        name: phoneNumber.name || "",
+        assistantId: phoneNumber.assistant_id || "",
+      });
+    }
+  }, [phoneNumber]);
+
+  useEffect(() => {
+    // Fetch user's agents when modal opens
+    if (isOpen) {
+      fetchAgents();
+    }
+  }, [isOpen]);
+
+  const fetchAgents = async () => {
+    try {
+      const userAgents = await apiService.getAgents();
+      setAgents(userAgents);
+    } catch (error) {
+      console.error("Failed to fetch agents:", error);
+      toast.error("Failed to load agents");
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      const result = await onUpdateNumber(phoneNumber.id, formData);
+
+      if (result.success) {
+        toast.success("Phone number updated successfully!");
+        onClose();
+      } else {
+        toast.error(result.error || "Failed to update phone number");
+      }
+    } catch (error) {
+      toast.error("Failed to update phone number");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4">
+        <div className="p-6 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold text-gray-900">
+              Edit Phone Number
+            </h2>
+            <button
+              onClick={onClose}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Display Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) =>
+                setFormData({ ...formData, name: e.target.value })
+              }
+              placeholder="e.g., Main Business Line"
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Connected Assistant
+            </label>
+            <select
+              value={formData.assistantId}
+              onChange={(e) =>
+                setFormData({ ...formData, assistantId: e.target.value })
+              }
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No assistant (manual handling)</option>
+              {agents.map((agent) => (
+                <option key={agent.id} value={agent.id}>
+                  {agent.name} ({agent.industry})
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">
+              Choose an assistant to automatically handle incoming calls to this number
+            </p>
+          </div>
+
+          {phoneNumber && (
+            <div className="bg-gray-50 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-gray-700 mb-2">Phone Number Details</h4>
+              <div className="text-sm text-gray-600 space-y-1">
+                <div><strong>Number:</strong> {phoneNumber.number}</div>
+                <div><strong>Provider:</strong> {phoneNumber.provider}</div>
+                <div><strong>Status:</strong> {phoneNumber.status}</div>
+              </div>
+            </div>
+          )}
+
+          <div className="flex space-x-3 pt-4">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+            >
+              {loading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Updating...</span>
+                </>
+              ) : (
+                <>
+                  <Settings className="w-4 h-4" />
+                  <span>Update</span>
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const PhoneNumbers = () => {
   const {
     phoneNumbers,
@@ -494,9 +652,22 @@ const PhoneNumbers = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [deletingNumber, setDeletingNumber] = useState(null);
   const [testingNumber, setTestingNumber] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingNumber, setEditingNumber] = useState(null);
+  const [agents, setAgents] = useState([]);
 
   useEffect(() => {
     fetchPhoneNumbers();
+    // Fetch agents for the edit modal
+    const fetchAgents = async () => {
+      try {
+        const response = await apiService.getAgents();
+        setAgents(response);
+      } catch (error) {
+        console.error('Failed to fetch agents:', error);
+      }
+    };
+    fetchAgents();
   }, [fetchPhoneNumbers]);
 
   const handleRefresh = async () => {
@@ -546,6 +717,27 @@ const PhoneNumbers = () => {
       toast.error("Failed to delete phone number");
     } finally {
       setDeletingNumber(null);
+    }
+  };
+
+  const handleEditNumber = (phoneNumber) => {
+    setEditingNumber(phoneNumber);
+    setShowEditModal(true);
+  };
+
+  const handleUpdateNumber = async (phoneNumberId, updateData) => {
+    try {
+      const result = await apiService.updatePhoneNumber(phoneNumberId, updateData);
+      if (result.success) {
+        toast.success("Phone number updated successfully");
+        setShowEditModal(false);
+        setEditingNumber(null);
+        await fetchPhoneNumbers(); // Refresh the list
+      }
+      return result;
+    } catch (error) {
+      toast.error("Failed to update phone number");
+      throw error;
     }
   };
 
@@ -798,7 +990,10 @@ const PhoneNumbers = () => {
                     </span>
                   </ButtonHover>
 
-                  <ButtonHover className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center justify-center space-x-1">
+                  <ButtonHover 
+                    onClick={() => handleEditNumber(phoneNumber)}
+                    className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center justify-center space-x-1"
+                  >
                     <Edit className="w-3 h-3" />
                     <span>Edit</span>
                   </ButtonHover>
@@ -826,6 +1021,18 @@ const PhoneNumbers = () => {
         isOpen={showCreateModal}
         onClose={() => setShowCreateModal(false)}
         onCreateNumber={handleCreateNumber}
+      />
+
+      {/* Edit Phone Number Modal */}
+      <EditPhoneNumberModal
+        isOpen={showEditModal}
+        onClose={() => {
+          setShowEditModal(false);
+          setEditingNumber(null);
+        }}
+        phoneNumber={editingNumber}
+        agents={agents}
+        onUpdateNumber={handleUpdateNumber}
       />
     </PageTransition>
   );

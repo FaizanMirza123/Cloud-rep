@@ -121,6 +121,15 @@ class CallCreate(BaseModel):
     agent_id: str
     phone_number_id: Optional[str] = None
 
+class PhoneNumberUpdate(BaseModel):
+    name: Optional[str] = None
+    assistantId: Optional[str] = None  # Connect to an assistant
+
+class WebhookData(BaseModel):
+    # VAPI webhook data model
+    call: Optional[dict] = None
+    message: Optional[dict] = None
+
 # Helper functions
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -928,6 +937,64 @@ async def delete_phone_number(phone_id: str, current_user: User = Depends(get_cu
     
     return {"message": "Phone number deleted successfully"}
 
+@app.put("/phone-numbers/{phone_id}")
+async def update_phone_number(
+    phone_id: str, 
+    phone_data: PhoneNumberUpdate, 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Update a phone number, including connecting to an assistant"""
+    phone_number = db.query(PhoneNumber).filter(and_(PhoneNumber.id == phone_id, PhoneNumber.user_id == current_user.id)).first()
+    if not phone_number:
+        raise HTTPException(status_code=404, detail="Phone number not found")
+    
+    try:
+        # Prepare VAPI update payload
+        vapi_payload = {}
+        
+        if phone_data.name:
+            vapi_payload["name"] = phone_data.name
+            phone_number.name = phone_data.name
+        
+        if phone_data.assistantId:
+            # Verify the assistant exists and belongs to the user
+            agent = db.query(Agent).filter(and_(Agent.id == phone_data.assistantId, Agent.user_id == current_user.id)).first()
+            if not agent:
+                raise HTTPException(status_code=404, detail="Assistant not found")
+            
+            # Use the VAPI assistant ID if available, otherwise use our local ID
+            assistant_vapi_id = agent.vapi_id if agent.vapi_id else agent.id
+            vapi_payload["assistantId"] = assistant_vapi_id
+            phone_number.assistant_id = phone_data.assistantId
+        
+        # Update in VAPI if we have a VAPI ID
+        if phone_number.vapi_id and vapi_payload:
+            updated_number = await call_vapi_api(f"/phone-number/{phone_number.vapi_id}", method="PATCH", data=vapi_payload)
+            print(f"Updated phone number in VAPI: {updated_number}")
+        
+        # Update in local database
+        phone_number.updated_at = datetime.utcnow()
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": "Phone number updated successfully",
+            "phone_number": {
+                "id": phone_number.id,
+                "name": phone_number.name,
+                "number": phone_number.number,
+                "assistant_id": phone_number.assistant_id,
+                "vapi_id": phone_number.vapi_id
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error updating phone number: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update phone number: {str(e)}")
+
 @app.post("/phone-numbers/{phone_id}/test")
 async def test_phone_number(phone_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Test if a phone number can make calls"""
@@ -1121,6 +1188,187 @@ async def get_dashboard_analytics(current_user: User = Depends(get_current_user)
         "callsToday": calls_today,
         "callsThisMonth": calls_this_month
     }
+
+# Webhook endpoint for VAPI events
+@app.post("/webhook/vapi")
+async def vapi_webhook(webhook_data: dict, db: Session = Depends(get_db)):
+    """Handle VAPI webhook events for call logging and status updates"""
+    try:
+        print(f"Received VAPI webhook: {webhook_data}")
+        
+        # Extract event type and data
+        message_type = webhook_data.get("message", {}).get("type")
+        call_data = webhook_data.get("message", {}).get("call", {})
+        
+        if not call_data:
+            print("No call data in webhook")
+            return {"status": "ignored", "reason": "no call data"}
+        
+        vapi_call_id = call_data.get("id")
+        if not vapi_call_id:
+            print("No call ID in webhook")
+            return {"status": "ignored", "reason": "no call ID"}
+        
+        # Find or create call record
+        call = db.query(Call).filter(Call.vapi_id == vapi_call_id).first()
+        
+        if message_type == "call-start":
+            # Create new call record if it doesn't exist
+            if not call:
+                # Extract phone number and assistant info
+                phone_number_data = call_data.get("phoneNumber", {})
+                assistant_data = call_data.get("assistant", {})
+                customer_data = call_data.get("customer", {})
+                
+                # Find the phone number in our database
+                phone_number = None
+                if phone_number_data.get("id"):
+                    phone_number = db.query(PhoneNumber).filter(PhoneNumber.vapi_id == phone_number_data.get("id")).first()
+                
+                # Find the assistant in our database
+                agent = None
+                if assistant_data.get("id"):
+                    agent = db.query(Agent).filter(Agent.vapi_id == assistant_data.get("id")).first()
+                
+                # Determine user_id from phone number or agent
+                user_id = None
+                if phone_number:
+                    user_id = phone_number.user_id
+                elif agent:
+                    user_id = agent.user_id
+                
+                if user_id:
+                    call = Call(
+                        id=str(uuid.uuid4()),
+                        vapi_id=vapi_call_id,
+                        user_id=user_id,
+                        agent_id=agent.id if agent else None,
+                        phone_number_id=phone_number.id if phone_number else None,
+                        phone_number=phone_number_data.get("number"),
+                        customer_number=customer_data.get("number"),
+                        direction=call_data.get("type", "inbound"),
+                        status=call_data.get("status", "in-progress"),
+                        started_at=datetime.utcnow() if call_data.get("startedAt") else None,
+                        created_at=datetime.utcnow()
+                    )
+                    db.add(call)
+                    db.commit()
+                    print(f"Created new call record for {vapi_call_id}")
+        
+        elif message_type in ["call-end", "call-ended"]:
+            # Update call with end information
+            if call:
+                call.status = call_data.get("status", "completed")
+                call.ended_reason = call_data.get("endedReason")
+                call.ended_at = datetime.utcnow()
+                
+                # Calculate duration if we have start and end times
+                if call.started_at and call.ended_at:
+                    duration_seconds = (call.ended_at - call.started_at).total_seconds()
+                    call.duration = int(duration_seconds)
+                
+                # Extract cost information
+                if "cost" in call_data:
+                    call.cost = str(call_data.get("cost", 0))
+                
+                # Extract recording URL
+                if "recordingUrl" in call_data:
+                    call.recording_url = call_data.get("recordingUrl")
+                
+                # Extract transcript
+                if "transcript" in call_data:
+                    call.transcript = call_data.get("transcript")
+                
+                db.commit()
+                print(f"Updated call record for {vapi_call_id}")
+        
+        elif message_type == "transcript":
+            # Update transcript if call exists
+            if call:
+                transcript_text = webhook_data.get("message", {}).get("transcript", "")
+                if transcript_text:
+                    call.transcript = transcript_text
+                    db.commit()
+                    print(f"Updated transcript for call {vapi_call_id}")
+        
+        return {"status": "processed", "call_id": vapi_call_id}
+        
+    except Exception as e:
+        print(f"Error processing VAPI webhook: {str(e)}")
+        return {"status": "error", "error": str(e)}
+
+@app.post("/sync/calls")
+async def sync_calls_from_vapi(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Sync call data from VAPI for the current user"""
+    try:
+        # Get user's phone numbers and agents to filter VAPI calls
+        user_phone_numbers = db.query(PhoneNumber).filter(PhoneNumber.user_id == current_user.id).all()
+        user_agents = db.query(Agent).filter(Agent.user_id == current_user.id).all()
+        
+        phone_vapi_ids = [pn.vapi_id for pn in user_phone_numbers if pn.vapi_id]
+        agent_vapi_ids = [ag.vapi_id for ag in user_agents if ag.vapi_id]
+        
+        # Fetch calls from VAPI
+        vapi_calls = await call_vapi_api("/call")
+        
+        synced_count = 0
+        
+        for vapi_call in vapi_calls:
+            vapi_call_id = vapi_call.get("id")
+            if not vapi_call_id:
+                continue
+            
+            # Check if this call belongs to the user
+            call_phone_id = vapi_call.get("phoneNumber", {}).get("id")
+            call_assistant_id = vapi_call.get("assistant", {}).get("id")
+            
+            if call_phone_id not in phone_vapi_ids and call_assistant_id not in agent_vapi_ids:
+                continue  # This call doesn't belong to the current user
+            
+            # Check if we already have this call
+            existing_call = db.query(Call).filter(Call.vapi_id == vapi_call_id).first()
+            if existing_call:
+                continue  # Already synced
+            
+            # Find matching phone number and agent
+            phone_number = next((pn for pn in user_phone_numbers if pn.vapi_id == call_phone_id), None)
+            agent = next((ag for ag in user_agents if ag.vapi_id == call_assistant_id), None)
+            
+            # Create call record
+            new_call = Call(
+                id=str(uuid.uuid4()),
+                vapi_id=vapi_call_id,
+                user_id=current_user.id,
+                agent_id=agent.id if agent else None,
+                phone_number_id=phone_number.id if phone_number else None,
+                phone_number=vapi_call.get("phoneNumber", {}).get("number"),
+                customer_number=vapi_call.get("customer", {}).get("number"),
+                direction=vapi_call.get("type", "inbound"),
+                status=vapi_call.get("status", "completed"),
+                duration=vapi_call.get("duration", 0),
+                cost=str(vapi_call.get("cost", 0)) if vapi_call.get("cost") else None,
+                recording_url=vapi_call.get("recordingUrl"),
+                transcript=vapi_call.get("transcript"),
+                ended_reason=vapi_call.get("endedReason"),
+                started_at=datetime.fromisoformat(vapi_call.get("startedAt").replace("Z", "+00:00")) if vapi_call.get("startedAt") else None,
+                ended_at=datetime.fromisoformat(vapi_call.get("endedAt").replace("Z", "+00:00")) if vapi_call.get("endedAt") else None,
+                created_at=datetime.fromisoformat(vapi_call.get("createdAt").replace("Z", "+00:00")) if vapi_call.get("createdAt") else datetime.utcnow()
+            )
+            
+            db.add(new_call)
+            synced_count += 1
+        
+        db.commit()
+        
+        return {
+            "success": True,
+            "message": f"Synced {synced_count} calls from VAPI",
+            "synced_count": synced_count
+        }
+        
+    except Exception as e:
+        print(f"Error syncing calls from VAPI: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to sync calls: {str(e)}")
 
 # Health check
 @app.get("/health")

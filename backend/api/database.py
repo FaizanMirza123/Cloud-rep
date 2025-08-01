@@ -65,6 +65,7 @@ class PhoneNumber(Base):
     provider = Column(String, default="byo-phone-number")
     type = Column(String, default="voice")
     status = Column(String, default="active")
+    assistant_id = Column(String, nullable=True)  # Connected assistant/agent ID
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
