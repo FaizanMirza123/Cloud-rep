@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { apiService } from '../services/api';
+import React, { useState, useEffect } from "react";
+import { apiService } from "../services/api";
 
 const PhoneNumberManagement = () => {
   const [phoneNumbers, setPhoneNumbers] = useState([]);
@@ -17,14 +17,14 @@ const PhoneNumberManagement = () => {
       setLoading(true);
       const [phoneNumbersResponse, agentsResponse] = await Promise.all([
         apiService.getPhoneNumbers(),
-        apiService.getAgents()
+        apiService.getAgents(),
       ]);
-      
+
       setPhoneNumbers(phoneNumbersResponse);
       setAgents(agentsResponse);
     } catch (err) {
-      setError('Failed to fetch data');
-      console.error('Error fetching data:', err);
+      setError("Failed to fetch data");
+      console.error("Error fetching data:", err);
     } finally {
       setLoading(false);
     }
@@ -32,27 +32,26 @@ const PhoneNumberManagement = () => {
 
   const handleAssistantConnection = async (phoneId, assistantId) => {
     try {
-      setUpdating(prev => ({ ...prev, [phoneId]: true }));
-      
-      await apiService.updatePhoneNumber(phoneId, { assistant_id: assistantId });
-      
+      setUpdating((prev) => ({ ...prev, [phoneId]: true }));
+
+      await apiService.updatePhoneNumber(phoneId, {
+        assistant_id: assistantId,
+      });
+
       // Update local state
-      setPhoneNumbers(prev => 
-        prev.map(phone => 
-          phone.id === phoneId 
-            ? { ...phone, assistant_id: assistantId }
-            : phone
+      setPhoneNumbers((prev) =>
+        prev.map((phone) =>
+          phone.id === phoneId ? { ...phone, assistant_id: assistantId } : phone
         )
       );
-      
+
       // Show success message (you can implement a toast notification here)
-      console.log('Phone number connected to assistant successfully');
-      
+      console.log("Phone number connected to assistant successfully");
     } catch (err) {
-      setError('Failed to connect phone number to assistant');
-      console.error('Error connecting phone number:', err);
+      setError("Failed to connect phone number to assistant");
+      console.error("Error connecting phone number:", err);
     } finally {
-      setUpdating(prev => ({ ...prev, [phoneId]: false }));
+      setUpdating((prev) => ({ ...prev, [phoneId]: false }));
     }
   };
 
@@ -97,9 +96,10 @@ const PhoneNumberManagement = () => {
             Phone Number to Assistant Connections
           </h3>
           <p className="text-sm text-gray-600 mb-6">
-            Connect your phone numbers to specific assistants to handle incoming calls.
+            Connect your phone numbers to specific assistants to handle incoming
+            calls.
           </p>
-          
+
           {phoneNumbers.length === 0 ? (
             <div className="text-center py-8">
               <div className="text-gray-500">No phone numbers found</div>
@@ -123,11 +123,13 @@ const PhoneNumberManagement = () => {
                         <div className="text-sm text-gray-500">
                           {phone.name}
                         </div>
-                        <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          phone.status === 'active' 
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
+                        <div
+                          className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            phone.status === "active"
+                              ? "bg-green-100 text-green-800"
+                              : "bg-gray-100 text-gray-800"
+                          }`}
+                        >
                           {phone.status}
                         </div>
                       </div>
@@ -135,19 +137,23 @@ const PhoneNumberManagement = () => {
                         Country: {phone.country} | Provider: {phone.provider}
                       </div>
                     </div>
-                    
+
                     <div className="flex items-center space-x-3">
-                      <div className="text-sm text-gray-600">
-                        Connected to:
-                      </div>
+                      <div className="text-sm text-gray-600">Connected to:</div>
                       <select
-                        value={phone.assistant_id || ''}
-                        onChange={(e) => handleAssistantConnection(phone.id, e.target.value)}
+                        value={phone.assistant_id || ""}
+                        onChange={(e) =>
+                          handleAssistantConnection(phone.id, e.target.value)
+                        }
                         disabled={updating[phone.id]}
                         className={`
                           border border-gray-300 rounded-md px-3 py-2 text-sm
                           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500
-                          ${updating[phone.id] ? 'opacity-50 cursor-not-allowed' : ''}
+                          ${
+                            updating[phone.id]
+                              ? "opacity-50 cursor-not-allowed"
+                              : ""
+                          }
                         `}
                       >
                         <option value="">Select Assistant</option>
@@ -162,13 +168,17 @@ const PhoneNumberManagement = () => {
                       )}
                     </div>
                   </div>
-                  
+
                   {phone.assistant_id && (
                     <div className="mt-3 pt-3 border-t border-gray-100">
                       <div className="text-sm text-gray-600">
-                        <span className="font-medium">Connected Assistant:</span>
+                        <span className="font-medium">
+                          Connected Assistant:
+                        </span>
                         {(() => {
-                          const connectedAgent = agents.find(a => a.id === phone.assistant_id);
+                          const connectedAgent = agents.find(
+                            (a) => a.id === phone.assistant_id
+                          );
                           return connectedAgent ? (
                             <span className="ml-2 text-green-600 font-medium">
                               {connectedAgent.name} ({connectedAgent.role})
@@ -188,7 +198,7 @@ const PhoneNumberManagement = () => {
           )}
         </div>
       </div>
-      
+
       {/* Call Activity Summary */}
       <div className="bg-white shadow-sm rounded-lg">
         <div className="px-4 py-5 sm:p-6">
@@ -198,13 +208,13 @@ const PhoneNumberManagement = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-blue-600">
-                {phoneNumbers.filter(p => p.assistant_id).length}
+                {phoneNumbers.filter((p) => p.assistant_id).length}
               </div>
               <div className="text-sm text-blue-700">Connected Numbers</div>
             </div>
             <div className="bg-green-50 p-4 rounded-lg">
               <div className="text-2xl font-bold text-green-600">
-                {phoneNumbers.filter(p => p.status === 'active').length}
+                {phoneNumbers.filter((p) => p.status === "active").length}
               </div>
               <div className="text-sm text-green-700">Active Numbers</div>
             </div>

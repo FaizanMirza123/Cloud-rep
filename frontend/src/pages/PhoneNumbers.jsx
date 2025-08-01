@@ -481,7 +481,12 @@ const CreatePhoneNumberModal = ({ isOpen, onClose, onCreateNumber }) => {
   );
 };
 
-const EditPhoneNumberModal = ({ isOpen, onClose, phoneNumber, onUpdateNumber }) => {
+const EditPhoneNumberModal = ({
+  isOpen,
+  onClose,
+  phoneNumber,
+  onUpdateNumber,
+}) => {
   const [formData, setFormData] = useState({
     name: "",
     assistantId: "",
@@ -590,17 +595,26 @@ const EditPhoneNumberModal = ({ isOpen, onClose, phoneNumber, onUpdateNumber }) 
               ))}
             </select>
             <p className="text-xs text-gray-500 mt-1">
-              Choose an assistant to automatically handle incoming calls to this number
+              Choose an assistant to automatically handle incoming calls to this
+              number
             </p>
           </div>
 
           {phoneNumber && (
             <div className="bg-gray-50 rounded-lg p-4">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Phone Number Details</h4>
+              <h4 className="text-sm font-medium text-gray-700 mb-2">
+                Phone Number Details
+              </h4>
               <div className="text-sm text-gray-600 space-y-1">
-                <div><strong>Number:</strong> {phoneNumber.number}</div>
-                <div><strong>Provider:</strong> {phoneNumber.provider}</div>
-                <div><strong>Status:</strong> {phoneNumber.status}</div>
+                <div>
+                  <strong>Number:</strong> {phoneNumber.number}
+                </div>
+                <div>
+                  <strong>Provider:</strong> {phoneNumber.provider}
+                </div>
+                <div>
+                  <strong>Status:</strong> {phoneNumber.status}
+                </div>
               </div>
             </div>
           )}
@@ -664,7 +678,7 @@ const PhoneNumbers = () => {
         const response = await apiService.getAgents();
         setAgents(response);
       } catch (error) {
-        console.error('Failed to fetch agents:', error);
+        console.error("Failed to fetch agents:", error);
       }
     };
     fetchAgents();
@@ -727,7 +741,10 @@ const PhoneNumbers = () => {
 
   const handleUpdateNumber = async (phoneNumberId, updateData) => {
     try {
-      const result = await apiService.updatePhoneNumber(phoneNumberId, updateData);
+      const result = await apiService.updatePhoneNumber(
+        phoneNumberId,
+        updateData
+      );
       if (result.success) {
         toast.success("Phone number updated successfully");
         setShowEditModal(false);
@@ -990,7 +1007,7 @@ const PhoneNumbers = () => {
                     </span>
                   </ButtonHover>
 
-                  <ButtonHover 
+                  <ButtonHover
                     onClick={() => handleEditNumber(phoneNumber)}
                     className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center justify-center space-x-1"
                   >
