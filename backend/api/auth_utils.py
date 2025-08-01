@@ -79,7 +79,7 @@ class EmailService:
         """Send email verification"""
         try:
             subject = "Verify Your EmployAI Account"
-            verification_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/verify-email?token={verification_token}"
+            verification_url = f"{os.getenv('FRONTEND_URL', 'https://cloud-rep-ten.vercel.app')}/verify-email?token={verification_token}"
             
             body = f"""
             <html>
@@ -102,7 +102,7 @@ class EmailService:
         """Send password reset email"""
         try:
             subject = "Reset Your EmployAI Password"
-            reset_url = f"{os.getenv('FRONTEND_URL', 'http://localhost:5173')}/reset-password?token={reset_token}"
+            reset_url = f"{os.getenv('FRONTEND_URL', 'https://cloud-rep-ten.vercel.app')}/reset-password?token={reset_token}"
             
             body = f"""
             <html>
