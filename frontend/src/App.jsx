@@ -236,12 +236,27 @@ function App() {
             }
           />
 
-          {/* Catch all route */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Catch all route - redirect based on auth status */}
+          <Route path="*" element={<NotFoundRedirect />} />
         </Routes>
       </Router>
     </AuthProvider>
   );
 }
+
+// Component to handle 404 redirects based on auth status
+const NotFoundRedirect = () => {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <PageTransition className="min-h-screen flex items-center justify-center">
+        <LoadingSpinner size="large" text="Loading..." />
+      </PageTransition>
+    );
+  }
+
+  return <Navigate to={user ? "/dashboard" : "/"} replace />;
+};
 
 export default App;
