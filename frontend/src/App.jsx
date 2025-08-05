@@ -20,6 +20,7 @@ import EmailVerification from "./pages/EmailVerification";
 import Dashboard from "./pages/Dashboard";
 import Agents from "./pages/Agents";
 import CreateAgent from "./pages/CreateAgent";
+import AgentCreationWizard from "./components/AgentCreationWizard";
 import PhoneNumbers from "./pages/PhoneNumbers";
 import Analytics from "./pages/Analytics";
 import LandingPage from "./pages/LandingPage";
@@ -148,6 +149,14 @@ function App() {
           />
           <Route
             path="/agents/create"
+            element={
+              <ProtectedRoute>
+                <AgentCreationWizard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/agents/create/simple"
             element={
               <ProtectedRoute>
                 <Layout>

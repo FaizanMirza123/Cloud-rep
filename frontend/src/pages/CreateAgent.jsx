@@ -676,11 +676,21 @@ const CreateAgent = () => {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              Create AI Agent
-            </h1>
-            <p className="text-gray-600">Set up your new voice AI agent</p>
+          <div className="flex-1">
+            <div className="flex items-center justify-between">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Create AI Agent (Simple)
+                </h1>
+                <p className="text-gray-600">Set up your new voice AI agent</p>
+              </div>
+              <button
+                onClick={() => navigate("/agents/create")}
+                className="text-sm text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1 rounded-md"
+              >
+                Switch to Guided Wizard
+              </button>
+            </div>
           </div>
         </div>
         <div className="flex space-x-3">

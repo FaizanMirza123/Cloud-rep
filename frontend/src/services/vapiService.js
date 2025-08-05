@@ -1,5 +1,5 @@
 // VAPI Service - API integration for Vapi.ai
-const VAPI_API_KEY = 'b53d60fd-f374-4af6-b586-3d2ff3463efa';
+const VAPI_API_KEY = '3b808635-5d81-4a32-89d2-c166337ff921';
 const VAPI_BASE_URL = 'https://api.vapi.ai';
 
 class VapiService {

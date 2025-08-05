@@ -21,7 +21,7 @@ from database import get_db, create_tables, User, Agent, PhoneNumber, Call
 from auth_utils import AuthUtils, EmailService, GoogleAuth
 
 # Environment variables
-VAPI_API_KEY = "b53d60fd-f374-4af6-b586-3d2ff3463efa"
+VAPI_API_KEY = "3b808635-5d81-4a32-89d2-c166337ff921"
 JWT_SECRET = os.getenv("JWT_SECRET", "your-secret-key-change-this-in-production")
 VAPI_BASE_URL = "https://api.vapi.ai"
 

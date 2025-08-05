@@ -353,7 +353,7 @@ const Agents = () => {
   };
 
   const handleEdit = (agent) => {
-    navigate(`/create-agent?edit=${agent.id}`, { state: { agent } });
+    navigate(`/agents/create/simple?edit=${agent.id}`, { state: { agent } });
   };
 
   const handleDelete = async (agentId) => {
@@ -459,7 +459,7 @@ const Agents = () => {
               <span>Refresh</span>
             </ButtonHover>
             <ButtonHover
-              onClick={() => navigate("/create-agent")}
+              onClick={() => navigate("/agents/create")}
               className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700 flex items-center space-x-2"
             >
               <Plus className="w-4 h-4" />
@@ -512,7 +512,7 @@ const Agents = () => {
             </p>
             {!searchTerm && (
               <ButtonHover
-                onClick={() => navigate("/create-agent")}
+                onClick={() => navigate("/agents/create")}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
               >
                 <Plus className="w-4 h-4 mr-2" />

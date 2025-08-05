@@ -5,7 +5,7 @@ import asyncio
 async def test_phone_creation():
     """Test phone number creation with different providers"""
     headers = {
-        'Authorization': 'Bearer b53d60fd-f374-4af6-b586-3d2ff3463efa',
+        'Authorization': 'Bearer 3b808635-5d81-4a32-89d2-c166337ff921',
         'Content-Type': 'application/json'
     }
     
