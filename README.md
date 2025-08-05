@@ -112,10 +112,10 @@ cd frontend && npm run dev
 
 ## 🌐 Access Points
 
-- **Frontend Application**: http://localhost:5173
-- **Backend API**: http://localhost:8000
-- **API Documentation**: http://localhost:8000docs
-- **Interactive API**: http://localhost:8000redoc
+- **Frontend Application**: https://cloud-rep-ten.vercel.app
+- **Backend API**: https://fastapi123.duckdns.org
+- **API Documentation**: https://fastapi123.duckdns.orgdocs
+- **Interactive API**: https://fastapi123.duckdns.orgredoc
 
 ## ⚙️ Configuration
 
@@ -136,7 +136,7 @@ GOOGLE_CLIENT_ID=your_google_oauth_client_id
 ### Frontend Environment (.env)
 
 ```env
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=https://fastapi123.duckdns.org
 VITE_GOOGLE_CLIENT_ID=your_google_client_id_here
 ```
 

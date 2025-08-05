@@ -4,7 +4,7 @@ import requests
 import json
 
 # Test the recordings endpoints
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://fastapi123.duckdns.org"
 
 def test_get_recordings():
     """Test getting recordings"""

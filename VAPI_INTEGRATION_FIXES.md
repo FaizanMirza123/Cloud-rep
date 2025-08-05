@@ -148,7 +148,7 @@ VAPI_API_KEY=your_actual_vapi_api_key_here
 
 ### 2. Test Vapi Connectivity
 
-Visit: `http://localhost:8000health/vapi`
+Visit: `https://fastapi123.duckdns.orghealth/vapi`
 Should return connection status and assistant count.
 
 ### 3. Create Agents

@@ -59,9 +59,9 @@ def main():
         sys.exit(1)
     
     print("\n" + "=" * 50)
-    print("🌐 Server will start at: http://localhost:8000")
-    print("📚 API Docs will be at: http://localhost:8000docs")
-    print("🔍 Health check: http://localhost:8000health")
+    print("🌐 Server will start at: https://fastapi123.duckdns.org")
+    print("📚 API Docs will be at: https://fastapi123.duckdns.orgdocs")
+    print("🔍 Health check: https://fastapi123.duckdns.orghealth")
     print("=" * 50)
     
     # Start server
