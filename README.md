@@ -112,10 +112,8 @@ cd frontend && npm run dev
 
 ## 🌐 Access Points
 
-- **Frontend Application**: https://cloud-rep-ten.vercel.app
-- **Backend API**: https://fastapi123.duckdns.org
-- **API Documentation**: https://fastapi123.duckdns.org/docs
-- **Interactive API**: https://fastapi123.duckdns.org/redoc
+- **Frontend Application**: http://localhost:5173
+- **Backend API**: http://localhost:8000
 - **API Documentation**: http://localhost:8000docs
 - **Interactive API**: http://localhost:8000redoc
 

@@ -2,7 +2,7 @@ import axios from 'axios';
 
 class ApiService {
   constructor() {
-    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'https://fastapi123.duckdns.org';
+    this.baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     this.cache = new Map();
     this.cacheExpiry = new Map();
     this.defaultCacheDuration = 5 * 60 * 1000; // 5 minutes
@@ -191,14 +191,42 @@ class ApiService {
     return this.apiCall('/calls/missed', { cache: useCache });
   }
 
-  async getCallRecordings(useCache = true) {
-    return this.apiCall('/calls/recordings', { cache: useCache });
+  async getCallRecordings(useCache = true, forceSync = false) {
+    return this.apiCall(`/calls/recordings${forceSync ? '?force_sync=true' : ''}`, { cache: useCache });
+  }
+  
+  async forceRefreshAllRecordings() {
+    // Use the new dedicated refresh endpoint
+    return this.apiCall('/calls/recordings/refresh', { method: 'POST' });
+  }
+
+  async getRecordingsByAgent(agentId, useCache = true) {
+    return this.apiCall(`/calls/recordings/by-agent/${agentId}`, { cache: useCache });
+  }
+
+  async syncAgentRecordings(agentId) {
+    return this.apiCall(`/agents/${agentId}/sync-recordings`, { 
+      method: 'POST' 
+    });
   }
 
   async createCall(callData) {
     return this.apiCall('/calls', {
       method: 'POST',
       data: callData
+    });
+  }
+
+  async updateCall(callId, callData) {
+    return this.apiCall(`/calls/${callId}`, {
+      method: 'PUT',
+      data: callData
+    });
+  }
+
+  async syncCallWithVapi(callId) {
+    return this.apiCall(`/calls/${callId}/sync`, {
+      method: 'POST'
     });
   }
 

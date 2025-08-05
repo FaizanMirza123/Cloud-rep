@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAgents } from "../hooks/useApi";
+import apiService from "../services/api";
 import {
   PageTransition,
   LoadingSpinner,
@@ -8,6 +9,7 @@ import {
   ButtonHover,
 } from "../components/AnimationComponents";
 import TestCallDialog from "../components/TestCallDialog";
+import WebCallDialog from "../components/WebCallDialog";
 import toast from "react-hot-toast";
 import {
   Plus,
@@ -19,6 +21,7 @@ import {
   Edit,
   Trash2,
   Phone,
+  Monitor,
   Play,
   Pause,
   Settings,
@@ -30,6 +33,9 @@ import {
   AlertCircle,
   RefreshCw,
 } from "lucide-react";
+
+// Make the web call handler available globally for the button
+window.handleWebCall = null;
 
 const AgentCard = ({
   agent,
@@ -117,7 +123,7 @@ const AgentCard = ({
         </div>
       </div>
 
-      <div className="flex space-x-2">
+      <div className="flex space-x-2 mb-2">
         <ButtonHover
           onClick={() => onView(agent)}
           className="flex-1 px-3 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-md hover:bg-blue-200 flex items-center justify-center space-x-1"
@@ -135,6 +141,21 @@ const AgentCard = ({
         </ButtonHover>
 
         <ButtonHover
+          onClick={() => onDelete(agent.id)}
+          disabled={deletingAgent === agent.id}
+          className="px-3 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 disabled:opacity-50"
+        >
+          {deletingAgent === agent.id ? (
+            <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
+          ) : (
+            <Trash2 className="w-3 h-3" />
+          )}
+        </ButtonHover>
+      </div>
+
+      {/* Call options */}
+      <div className="flex space-x-2">
+        <ButtonHover
           onClick={() => onTest(agent)}
           disabled={testingAgent === agent.id}
           className="flex-1 px-3 py-2 text-sm font-medium text-purple-700 bg-purple-100 rounded-md hover:bg-purple-200 disabled:opacity-50 flex items-center justify-center space-x-1"
@@ -147,21 +168,17 @@ const AgentCard = ({
           ) : (
             <>
               <Phone className="w-3 h-3" />
-              <span>Test</span>
+              <span>Phone Call</span>
             </>
           )}
         </ButtonHover>
 
         <ButtonHover
-          onClick={() => onDelete(agent.id)}
-          disabled={deletingAgent === agent.id}
-          className="px-3 py-2 text-sm font-medium text-red-700 bg-red-100 rounded-md hover:bg-red-200 disabled:opacity-50"
+          onClick={() => window.handleWebCall(agent)}
+          className="flex-1 px-3 py-2 text-sm font-medium text-cyan-700 bg-cyan-100 rounded-md hover:bg-cyan-200 flex items-center justify-center space-x-1"
         >
-          {deletingAgent === agent.id ? (
-            <div className="w-3 h-3 border-2 border-red-600 border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <Trash2 className="w-3 h-3" />
-          )}
+          <Monitor className="w-3 h-3" />
+          <span>Web Call</span>
         </ButtonHover>
       </div>
     </CardHover>
@@ -310,7 +327,16 @@ const Agents = () => {
   const [deletingAgent, setDeletingAgent] = useState(null);
   const [testingAgent, setTestingAgent] = useState(null);
   const [testDialogOpen, setTestDialogOpen] = useState(false);
+  const [webCallDialogOpen, setWebCallDialogOpen] = useState(false);
   const [agentToTest, setAgentToTest] = useState(null);
+
+  // Set the global web call handler to be accessible from AgentCard
+  useEffect(() => {
+    window.handleWebCall = handleWebCall;
+    return () => {
+      window.handleWebCall = null;
+    };
+  }, []);
 
   useEffect(() => {
     fetchAgents();
@@ -352,6 +378,11 @@ const Agents = () => {
   const handleTest = (agent) => {
     setAgentToTest(agent);
     setTestDialogOpen(true);
+  };
+
+  const handleWebCall = (agent) => {
+    setAgentToTest(agent);
+    setWebCallDialogOpen(true);
   };
 
   const handleTestCall = async (agent, phoneNumber) => {
@@ -522,6 +553,17 @@ const Agents = () => {
           setAgentToTest(null);
         }}
         onTest={handleTestCall}
+        agent={agentToTest}
+        isLoading={testingAgent === agentToTest?.id}
+      />
+
+      {/* Web Call Dialog */}
+      <WebCallDialog
+        isOpen={webCallDialogOpen}
+        onClose={() => {
+          setWebCallDialogOpen(false);
+          setAgentToTest(null);
+        }}
         agent={agentToTest}
         isLoading={testingAgent === agentToTest?.id}
       />
