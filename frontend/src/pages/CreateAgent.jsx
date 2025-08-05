@@ -28,8 +28,11 @@ const CreateAgent = () => {
     description: "",
     firstMessage: "",
     systemPrompt: "",
-    voice: "alloy",
-    model: "gpt-4",
+    voice: "flash-v2.5",
+    voiceProvider: "11labs",
+    voiceGender: "male",
+    model: "gpt-4o",
+    modelProvider: "openai",
     language: "en-US",
   });
 
@@ -59,28 +62,138 @@ const CreateAgent = () => {
     "Financial Services",
   ];
 
-  const voices = [
-    { id: "alloy", name: "Alloy", description: "Neutral, professional" },
-    { id: "echo", name: "Echo", description: "Warm, friendly" },
-    { id: "fable", name: "Fable", description: "Expressive, storytelling" },
-    { id: "onyx", name: "Onyx", description: "Deep, authoritative" },
-    { id: "nova", name: "Nova", description: "Clear, energetic" },
-    { id: "shimmer", name: "Shimmer", description: "Bright, cheerful" },
+  const voiceProviders = [
+    { id: "11labs", name: "ElevenLabs", description: "High-quality voices" },
+    { id: "azure", name: "Azure", description: "Microsoft neural voices" },
+    { id: "openai", name: "OpenAI", description: "OpenAI voices" },
+  ];
+
+  const elevenLabsVoices = [
+    {
+      id: "flash-v2.5",
+      name: "Flash v2.5",
+      description: "Fast, high-quality voice",
+      gender: ["male", "female"],
+    },
+    {
+      id: "flash-v2",
+      name: "Flash v2",
+      description: "Fast voice synthesis",
+      gender: ["male", "female"],
+    },
+  ];
+
+  const azureVoices = [
+    {
+      id: "en-US-AriaNeural",
+      name: "Aria",
+      description: "Clear, professional",
+      gender: "female",
+    },
+    {
+      id: "en-US-GuyNeural",
+      name: "Guy",
+      description: "Warm, confident",
+      gender: "male",
+    },
+    {
+      id: "en-US-JennyNeural",
+      name: "Jenny",
+      description: "Friendly, optimistic",
+      gender: "female",
+    },
+    {
+      id: "en-US-DavisNeural",
+      name: "Davis",
+      description: "Clear, assertive",
+      gender: "male",
+    },
+  ];
+
+  const openaiVoices = [
+    {
+      id: "alloy",
+      name: "Alloy",
+      description: "Neutral, professional",
+      gender: "neutral",
+    },
+    {
+      id: "echo",
+      name: "Echo",
+      description: "Warm, friendly",
+      gender: "female",
+    },
+    {
+      id: "fable",
+      name: "Fable",
+      description: "Expressive, storytelling",
+      gender: "male",
+    },
+    {
+      id: "onyx",
+      name: "Onyx",
+      description: "Deep, authoritative",
+      gender: "male",
+    },
+    {
+      id: "nova",
+      name: "Nova",
+      description: "Clear, energetic",
+      gender: "female",
+    },
+    {
+      id: "shimmer",
+      name: "Shimmer",
+      description: "Bright, cheerful",
+      gender: "female",
+    },
   ];
 
   const models = [
-    { id: "gpt-4", name: "GPT-4", description: "Most capable model" },
+    {
+      id: "gpt-4o",
+      name: "GPT-4o",
+      description: "Most capable and efficient model",
+      provider: "openai",
+    },
+    {
+      id: "gpt-4",
+      name: "GPT-4",
+      description: "Reliable and powerful",
+      provider: "openai",
+    },
+    {
+      id: "gpt-4.1",
+      name: "GPT-4.1",
+      description: "Advanced capabilities",
+      provider: "openai",
+    },
     {
       id: "gpt-3.5-turbo",
       name: "GPT-3.5 Turbo",
       description: "Fast and efficient",
+      provider: "openai",
     },
     {
       id: "claude-3-sonnet",
       name: "Claude 3 Sonnet",
       description: "Anthropic model",
+      provider: "anthropic",
     },
   ];
+
+  const getVoicesForProvider = (provider) => {
+    switch (provider) {
+      case "11labs":
+        return elevenLabsVoices;
+      case "azure":
+        return azureVoices;
+      case "openai":
+        return openaiVoices;
+      default:
+        return elevenLabsVoices;
+    }
+  };
 
   const handleInputChange = (field, value) => {
     setAgentData((prev) => ({
@@ -277,9 +390,13 @@ const CreateAgent = () => {
                       name="model"
                       value={model.id}
                       checked={agentData.model === model.id}
-                      onChange={(e) =>
-                        handleInputChange("model", e.target.value)
-                      }
+                      onChange={(e) => {
+                        handleInputChange("model", e.target.value);
+                        handleInputChange(
+                          "modelProvider",
+                          model.provider || "openai"
+                        );
+                      }}
                       className="text-blue-600"
                     />
                     <div>
@@ -341,10 +458,61 @@ const CreateAgent = () => {
           <div className="space-y-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Voice Provider
+              </label>
+              <div className="space-y-3">
+                {voiceProviders.map((provider) => (
+                  <label
+                    key={provider.id}
+                    className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
+                  >
+                    <input
+                      type="radio"
+                      name="voiceProvider"
+                      value={provider.id}
+                      checked={agentData.voiceProvider === provider.id}
+                      onChange={(e) => {
+                        handleInputChange("voiceProvider", e.target.value);
+                        // Set default voice for selected provider
+                        const voices = getVoicesForProvider(e.target.value);
+                        if (voices && voices.length > 0) {
+                          handleInputChange("voice", voices[0].id);
+                          if (voices[0].gender) {
+                            if (Array.isArray(voices[0].gender)) {
+                              handleInputChange(
+                                "voiceGender",
+                                voices[0].gender[0]
+                              );
+                            } else {
+                              handleInputChange(
+                                "voiceGender",
+                                voices[0].gender
+                              );
+                            }
+                          }
+                        }
+                      }}
+                      className="text-blue-600"
+                    />
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {provider.name}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        {provider.description}
+                      </div>
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Voice
               </label>
               <div className="space-y-3">
-                {voices.map((voice) => (
+                {getVoicesForProvider(agentData.voiceProvider).map((voice) => (
                   <label
                     key={voice.id}
                     className="flex items-center space-x-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer"
@@ -354,9 +522,16 @@ const CreateAgent = () => {
                       name="voice"
                       value={voice.id}
                       checked={agentData.voice === voice.id}
-                      onChange={(e) =>
-                        handleInputChange("voice", e.target.value)
-                      }
+                      onChange={(e) => {
+                        handleInputChange("voice", e.target.value);
+                        if (voice.gender) {
+                          if (Array.isArray(voice.gender)) {
+                            handleInputChange("voiceGender", voice.gender[0]);
+                          } else {
+                            handleInputChange("voiceGender", voice.gender);
+                          }
+                        }
+                      }}
                       className="text-blue-600"
                     />
                     <div>
@@ -371,6 +546,43 @@ const CreateAgent = () => {
                 ))}
               </div>
             </div>
+
+            {/* Voice Gender Selection for ElevenLabs */}
+            {agentData.voiceProvider === "11labs" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Voice Gender
+                </label>
+                <div className="flex space-x-4">
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="voiceGender"
+                      value="male"
+                      checked={agentData.voiceGender === "male"}
+                      onChange={(e) =>
+                        handleInputChange("voiceGender", e.target.value)
+                      }
+                      className="text-blue-600"
+                    />
+                    <span>Male</span>
+                  </label>
+                  <label className="flex items-center space-x-2">
+                    <input
+                      type="radio"
+                      name="voiceGender"
+                      value="female"
+                      checked={agentData.voiceGender === "female"}
+                      onChange={(e) =>
+                        handleInputChange("voiceGender", e.target.value)
+                      }
+                      className="text-blue-600"
+                    />
+                    <span>Female</span>
+                  </label>
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">

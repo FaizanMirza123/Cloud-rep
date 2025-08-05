@@ -33,9 +33,9 @@ start "EmployAI Frontend" cmd /k "cd frontend && npm run dev"
 
 echo =================================================
 echo   EmployAI Application Started!
-echo   Backend: https://fastapi123.duckdns.org
-echo   Frontend: https://cloud-rep-ten.vercel.app
-echo   API Docs: https://fastapi123.duckdns.org/docs
+echo   Backend: http://localhost:8000
+echo   Frontend: http://localhost:5173
+echo   API Docs: http://localhost:8000docs
 echo =================================================
 
 pause

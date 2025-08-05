@@ -17,8 +17,8 @@ from fastapi.responses import JSONResponse
 from fastapi.requests import Request
 from fastapi import status
 # Local imports
-from api.database import get_db, create_tables, User, Agent, PhoneNumber, Call
-from api.auth_utils import AuthUtils, EmailService, GoogleAuth
+from database import get_db, create_tables, User, Agent, PhoneNumber, Call
+from auth_utils import AuthUtils, EmailService, GoogleAuth
 
 # Environment variables
 VAPI_API_KEY = "b53d60fd-f374-4af6-b586-3d2ff3463efa"
@@ -30,7 +30,7 @@ app = FastAPI(title="EmployAI API", version="1.0.0")
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://cloud-rep-ten.vercel.app"],
+    allow_origins=["http://localhost:5173"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -49,6 +49,10 @@ auth_utils = AuthUtils()
 @app.on_event("startup")
 async def startup_event():
     create_tables()
+
+@app.get("/")
+async def root():
+    return {"message": "EmployAI API", "version": "1.0.0"}
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
@@ -88,8 +92,11 @@ class AgentCreate(BaseModel):
     description: Optional[str] = None
     systemPrompt: Optional[str] = None
     firstMessage: Optional[str] = None
-    voice: str = "alloy"
-    model: str = "gpt-4"
+    voice: str = "29vD33N1CtxCmqQRPOHJ"  # Using ElevenLabs male voice ID
+    voiceProvider: str = "11labs"  # Now using ElevenLabs as default
+    voiceGender: Optional[str] = "male"
+    model: str = "gpt-4o"
+    modelProvider: str = "openai"
     language: str = "en-US"
 
 class AgentUpdate(BaseModel):
@@ -100,7 +107,10 @@ class AgentUpdate(BaseModel):
     systemPrompt: Optional[str] = None
     firstMessage: Optional[str] = None
     voice: Optional[str] = None
+    voiceProvider: Optional[str] = None
+    voiceGender: Optional[str] = None
     model: Optional[str] = None
+    modelProvider: Optional[str] = None
     language: Optional[str] = None
 
 class PhoneNumberCreate(BaseModel):
@@ -156,6 +166,76 @@ def get_current_user(user_email: str = Depends(verify_token), db: Session = Depe
         raise HTTPException(status_code=404, detail="User not found")
     return user
 
+def get_safe_voice_config(provider: str, voice_id: str = None, gender: str = None, model: str = None):
+    """
+    Helper function to get a safe voice configuration that works with VAPI
+    Returns a tuple of (provider, voice_id, model_params) that should be compatible
+    """
+    # Start with defaults
+    safe_provider = "openai"
+    safe_voice_id = "alloy"  # Default neutral
+    model_params = None  # Additional model parameters
+    
+    # Log what was requested for debugging purposes
+    print(f"Voice requested: provider={provider}, voice_id={voice_id}, gender={gender}, model={model}")
+    
+    # Handle each provider according to what we know works well with VAPI
+    if provider == "openai":
+        # OpenAI voices are well-supported
+        safe_provider = "openai"
+        
+        # Use gender preferences if specified
+        if gender == "male":
+            safe_voice_id = "echo" 
+        elif gender == "female":
+            safe_voice_id = "nova"
+        elif voice_id:
+            # Use provided voice ID if specified
+            safe_voice_id = voice_id
+    
+    elif provider == "azure":
+        # Azure neural voices work well
+        safe_provider = "azure"
+        
+        if gender == "male":
+            safe_voice_id = "en-US-ChristopherNeural"
+        elif gender == "female":
+            safe_voice_id = "en-US-JennyNeural"
+        elif voice_id:
+            # Use provided voice ID if specified 
+            safe_voice_id = voice_id
+    
+    elif provider == "11labs":
+        # Now we'll use the specific ElevenLabs voice IDs directly with Flash v2.5 model
+        safe_provider = "11labs"
+        
+        # Set the model to Flash v2.5 for 11labs with stability settings
+        model_params = {
+            "model": "eleven_flash_v2_5",  # Using ElevenLabs Flash v2.5 model
+            "stability": 0.5,
+            "similarityBoost": 0.75
+        }
+        
+        if gender == "female" or (voice_id and voice_id.lower() in ["female", "female-voice", "rachel"]):
+            # Use specified female voice ID
+            safe_voice_id = "qBDvhofpxp92JgXJxDjB"
+            print(f"Using specific 11labs female voice ID: {safe_voice_id} with Flash v2.5 model")
+        elif gender == "male" or (voice_id and voice_id.lower() in ["male", "male-voice", "josh"]):
+            # Use specified male voice ID
+            safe_voice_id = "29vD33N1CtxCmqQRPOHJ"
+            print(f"Using specific 11labs male voice ID: {safe_voice_id} with Flash v2.5 model")
+        elif voice_id:
+            # Use provided voice ID if specified and not a generic identifier
+            safe_voice_id = voice_id
+            print(f"Using provided 11labs voice ID: {safe_voice_id} with Flash v2.5 model")
+        else:
+            # Default to male voice if no specification
+            safe_voice_id = "29vD33N1CtxCmqQRPOHJ"
+            print(f"Using default 11labs male voice ID: {safe_voice_id} with Flash v2.5 model")
+    
+    print(f"Using safe voice configuration: provider={safe_provider}, voice_id={safe_voice_id}, model_params={model_params}")
+    return safe_provider, safe_voice_id, model_params
+
 async def call_vapi_api(endpoint: str, method: str = "GET", data: dict = None):
     """Helper function to make calls to VAPI API"""
     if not VAPI_API_KEY:
@@ -166,6 +246,42 @@ async def call_vapi_api(endpoint: str, method: str = "GET", data: dict = None):
         "Authorization": f"Bearer {VAPI_API_KEY}",
         "Content-Type": "application/json"
     }
+    
+    # Special handling for voice configuration in the payload
+    if data and "voice" in data:
+        # Try to apply safe voice configuration
+        voice_config = data["voice"]
+        provider = voice_config.get("provider")
+        voice_id = voice_config.get("voiceId")
+        
+        # For 11labs voices, ensure we're using the correct specific voice IDs
+        if provider == "11labs":
+            # Determine gender from voice_id if possible
+            gender = None
+            if voice_id:
+                if "male" in voice_id.lower():
+                    gender = "male"
+                elif "female" in voice_id.lower():
+                    gender = "female"
+            
+            # Get the appropriate voice ID using our helper function
+            safe_provider, safe_voice_id, model_params = get_safe_voice_config(
+                provider="11labs",  # Keep as 11labs since we now have specific IDs
+                voice_id=voice_id,
+                gender=gender,
+                model="flash-v2.5"  # Specify we want Flash v2.5
+            )
+            
+            # Update the payload with safe values
+            data["voice"]["provider"] = safe_provider
+            data["voice"]["voiceId"] = safe_voice_id
+            
+            # Add model parameters for Flash v2.5
+            if model_params:
+                for key, value in model_params.items():
+                    data["voice"][key] = value
+            
+            print(f"Using specific 11labs voice ID: {safe_voice_id} with Flash v2.5 model")
     
     async with httpx.AsyncClient() as client:
         url = f"{VAPI_BASE_URL}{endpoint}"
@@ -403,8 +519,8 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
             "name": agent_data.name,
             "firstMessage": agent_data.firstMessage or "Hello! How can I help you today?",
             "model": {
-                "provider": "openai",
-                "model": agent_data.model or "gpt-4",
+                "provider": agent_data.modelProvider or "openai",
+                "model": agent_data.model or "gpt-4o",
                 "messages": [
                     {
                         "role": "system",
@@ -414,16 +530,42 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
                 "temperature": 0.7,
                 "maxTokens": 500
             },
-            "voice": {
-                "provider": "openai",
-                "voiceId": agent_data.voice or "alloy"
-            },
             "transcriber": {
                 "provider": "deepgram",
-                "model": "nova-2",
-                "language": agent_data.language or "en"
+                "model": "nova-3",
+                "language": agent_data.language or "en-US"
             }
         }
+        
+        # Handle voice configuration using our helper function
+        provider = agent_data.voiceProvider or "openai"
+        voice_id = agent_data.voice
+        gender = agent_data.voiceGender
+        
+        # Get safe voice configuration with model support
+        safe_provider, safe_voice_id, model_params = get_safe_voice_config(
+            provider=provider, 
+            voice_id=voice_id, 
+            gender=gender,
+            model="flash-v2.5" if provider == "11labs" else None
+        )
+        
+        # Update the payload with safe values
+        vapi_payload["voice"] = {
+            "provider": safe_provider,
+            "voiceId": safe_voice_id
+        }
+        
+        # Add model parameters if available (for ElevenLabs Flash v2.5)
+        if model_params:
+            for key, value in model_params.items():
+                vapi_payload["voice"][key] = value
+        
+        # If we had to change the provider, update the agent data
+        if safe_provider != provider:
+            # Store what we're actually using, not what was requested
+            agent_data.voiceProvider = safe_provider
+            agent_data.voice = safe_voice_id
         
         # Create agent in VAPI
         vapi_agent = await call_vapi_api("/assistant", method="POST", data=vapi_payload)
@@ -441,7 +583,10 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
             system_prompt=agent_data.systemPrompt,
             first_message=agent_data.firstMessage,
             voice=agent_data.voice,
+            voice_provider=agent_data.voiceProvider,
+            voice_gender=agent_data.voiceGender,
             model=agent_data.model,
+            model_provider=agent_data.modelProvider,
             language=agent_data.language,
             status="active"
         )
@@ -466,7 +611,10 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
             system_prompt=agent_data.systemPrompt,
             first_message=agent_data.firstMessage,
             voice=agent_data.voice,
+            voice_provider=agent_data.voiceProvider,
+            voice_gender=agent_data.voiceGender,
             model=agent_data.model,
+            model_provider=agent_data.modelProvider,
             language=agent_data.language,
             status="error"
         )
@@ -531,7 +679,19 @@ async def update_agent(agent_id: str, agent_data: AgentUpdate, current_user: Use
     # Update local agent
     update_data = agent_data.dict(exclude_unset=True)
     for field, value in update_data.items():
-        db_field = field.replace("systemPrompt", "system_prompt").replace("firstMessage", "first_message")
+        # Convert camelCase to snake_case for database fields
+        db_field = field
+        if field == "systemPrompt":
+            db_field = "system_prompt"
+        elif field == "firstMessage":
+            db_field = "first_message"
+        elif field == "voiceProvider":
+            db_field = "voice_provider"
+        elif field == "voiceGender":
+            db_field = "voice_gender"
+        elif field == "modelProvider":
+            db_field = "model_provider"
+            
         if hasattr(agent, db_field):
             setattr(agent, db_field, value)
     
@@ -548,10 +708,10 @@ async def update_agent(agent_id: str, agent_data: AgentUpdate, current_user: Use
             if agent_data.firstMessage:
                 vapi_payload["firstMessage"] = agent_data.firstMessage
                 
-            if agent_data.systemPrompt or agent_data.model:
+            if agent_data.systemPrompt or agent_data.model or agent_data.modelProvider:
                 vapi_payload["model"] = {
-                    "provider": "openai",
-                    "model": agent_data.model or agent.model,
+                    "provider": agent_data.modelProvider or agent.model_provider or "openai",
+                    "model": agent_data.model or agent.model or "gpt-4o",
                     "messages": [
                         {
                             "role": "system", 
@@ -562,16 +722,42 @@ async def update_agent(agent_id: str, agent_data: AgentUpdate, current_user: Use
                     "maxTokens": 500
                 }
                 
-            if agent_data.voice:
+            if agent_data.voice or agent_data.voiceProvider or agent_data.voiceGender:
+                provider = agent_data.voiceProvider or agent.voice_provider or "openai"
+                
+                # Get voice configuration details (from update data or existing agent data)
+                voice_id = agent_data.voice or agent.voice
+                gender = agent_data.voiceGender or agent.voice_gender
+                
+                # Get safe voice configuration using our helper function with model support
+                safe_provider, safe_voice_id, model_params = get_safe_voice_config(
+                    provider=provider, 
+                    voice_id=voice_id, 
+                    gender=gender,
+                    model="flash-v2.5" if provider == "11labs" else None
+                )
+                
+                # Update the payload with safe values
                 vapi_payload["voice"] = {
-                    "provider": "openai",
-                    "voiceId": agent_data.voice
+                    "provider": safe_provider,
+                    "voiceId": safe_voice_id
                 }
+                
+                # Add model parameters if available (for ElevenLabs Flash v2.5)
+                if model_params:
+                    for key, value in model_params.items():
+                        vapi_payload["voice"][key] = value
+                
+                # If we had to change the provider, update the agent data to be consistent
+                if safe_provider != provider:
+                    # Store what we're actually using, not what was requested
+                    agent.voice_provider = safe_provider
+                    agent.voice = safe_voice_id
             
             if agent_data.language:
                 vapi_payload["transcriber"] = {
                     "provider": "deepgram",
-                    "model": "nova-2", 
+                    "model": "nova-3", 
                     "language": agent_data.language
                 }
             
@@ -1212,21 +1398,87 @@ async def get_missed_calls(current_user: User = Depends(get_current_user), db: S
 
 @app.get("/calls/recordings")
 async def get_call_recordings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
-    """Get calls with recordings - synced from VAPI"""
+    """Get calls with recordings - synced from VAPI and fetch recordings directly from VAPI API"""
     try:
-        # Sync calls from VAPI
-        all_calls = await sync_user_calls_from_vapi(current_user, db)
+        # Get user's agents to find their assistant IDs
+        user_agents = db.query(Agent).filter(Agent.user_id == current_user.id).all()
         
-        # Filter for calls with recordings
-        recorded_calls = [
-            call for call in all_calls 
-            if call.recording_url and call.recording_url.strip()
-        ]
+        all_recordings = []
         
-        # Sort by ended_at or created_at descending
-        recorded_calls.sort(key=lambda x: x.ended_at or x.created_at or datetime.min, reverse=True)
+        # Fetch recordings from VAPI for each user's assistant
+        for agent in user_agents:
+            if agent.vapi_id:
+                try:
+                    # Fetch calls for this specific assistant from VAPI
+                    vapi_calls = await call_vapi_api(f"/call?assistantId={agent.vapi_id}")
+                    
+                    if isinstance(vapi_calls, list):
+                        for vapi_call in vapi_calls:
+                            # Only include calls that have recordings
+                            if vapi_call.get("recordingUrl"):
+                                # Create or update local call record
+                                local_call = db.query(Call).filter(Call.vapi_id == vapi_call.get("id")).first()
+                                
+                                if not local_call:
+                                    # Create new call record
+                                    call_id = str(uuid.uuid4())
+                                    local_call = Call(
+                                        id=call_id,
+                                        vapi_id=vapi_call.get("id"),
+                                        user_id=current_user.id,
+                                        agent_id=agent.id,
+                                        customer_number=vapi_call.get("customer", {}).get("number") if vapi_call.get("customer") else "Unknown",
+                                        direction=vapi_call.get("type", "unknown"),
+                                        status=vapi_call.get("status", "completed"),
+                                        duration=vapi_call.get("duration"),
+                                        cost=vapi_call.get("cost"),
+                                        recording_url=vapi_call.get("recordingUrl"),
+                                        transcript=vapi_call.get("transcript", ""),
+                                        ended_reason=vapi_call.get("endedReason"),
+                                        started_at=datetime.fromisoformat(vapi_call.get("startedAt").replace('Z', '+00:00')) if vapi_call.get("startedAt") else None,
+                                        ended_at=datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00')) if vapi_call.get("endedAt") else None,
+                                        created_at=datetime.fromisoformat(vapi_call.get("createdAt").replace('Z', '+00:00')) if vapi_call.get("createdAt") else datetime.utcnow(),
+                                        updated_at=datetime.fromisoformat(vapi_call.get("updatedAt").replace('Z', '+00:00')) if vapi_call.get("updatedAt") else datetime.utcnow()
+                                    )
+                                    db.add(local_call)
+                                else:
+                                    # Update existing call with latest data
+                                    local_call.recording_url = vapi_call.get("recordingUrl", local_call.recording_url)
+                                    local_call.transcript = vapi_call.get("transcript", local_call.transcript)
+                                    local_call.status = vapi_call.get("status", local_call.status)
+                                    local_call.duration = vapi_call.get("duration", local_call.duration)
+                                    local_call.cost = vapi_call.get("cost", local_call.cost)
+                                    local_call.ended_reason = vapi_call.get("endedReason", local_call.ended_reason)
+                                    local_call.updated_at = datetime.utcnow()
+                                
+                                # Add agent name for response
+                                local_call.agent_name = agent.name
+                                all_recordings.append(local_call)
+                                
+                except Exception as e:
+                    print(f"Error fetching recordings for agent {agent.name} (VAPI ID: {agent.vapi_id}): {str(e)}")
+                    continue
         
-        return recorded_calls
+        # Commit all database changes
+        db.commit()
+        
+        # Remove duplicates and sort by ended_at or created_at descending
+        unique_recordings = {call.vapi_id: call for call in all_recordings}.values()
+        sorted_recordings = sorted(unique_recordings, key=lambda x: x.ended_at or x.created_at or datetime.min, reverse=True)
+        
+        # Add agent names to the response by joining with agent data
+        for recording in sorted_recordings:
+            if recording.agent_id:
+                agent = next((a for a in user_agents if a.id == recording.agent_id), None)
+                if agent:
+                    # Add agent_name as a temporary attribute for JSON serialization
+                    recording.agent_name = agent.name
+                else:
+                    recording.agent_name = "Unknown Agent"
+            else:
+                recording.agent_name = "AI Assistant"
+        
+        return sorted_recordings
         
     except Exception as e:
         print(f"Error fetching call recordings: {str(e)}")
@@ -1234,7 +1486,120 @@ async def get_call_recordings(current_user: User = Depends(get_current_user), db
         recorded_calls = db.query(Call).filter(
             and_(Call.user_id == current_user.id, Call.recording_url.isnot(None))
         ).order_by(desc(Call.ended_at)).all()
+        
+        # Add agent names to fallback results
+        user_agents = db.query(Agent).filter(Agent.user_id == current_user.id).all()
+        for recording in recorded_calls:
+            if recording.agent_id:
+                agent = next((a for a in user_agents if a.id == recording.agent_id), None)
+                if agent:
+                    recording.agent_name = agent.name
+                else:
+                    recording.agent_name = "Unknown Agent"
+            else:
+                recording.agent_name = "AI Assistant"
+        
         return recorded_calls
+
+@app.post("/calls/recordings/refresh")
+async def refresh_call_recordings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Force refresh all call recordings from VAPI for user's assistants"""
+    try:
+        # Get user's agents to find their assistant IDs
+        user_agents = db.query(Agent).filter(Agent.user_id == current_user.id).all()
+        
+        refreshed_count = 0
+        
+        # Fetch recordings from VAPI for each user's assistant
+        for agent in user_agents:
+            if agent.vapi_id:
+                try:
+                    # Fetch calls for this specific assistant from VAPI
+                    vapi_calls = await call_vapi_api(f"/call?assistantId={agent.vapi_id}")
+                    
+                    if isinstance(vapi_calls, list):
+                        for vapi_call in vapi_calls:
+                            # Only process calls that have recordings
+                            if vapi_call.get("recordingUrl"):
+                                # Create or update local call record
+                                local_call = db.query(Call).filter(Call.vapi_id == vapi_call.get("id")).first()
+                                
+                                if not local_call:
+                                    # Create new call record
+                                    call_id = str(uuid.uuid4())
+                                    local_call = Call(
+                                        id=call_id,
+                                        vapi_id=vapi_call.get("id"),
+                                        user_id=current_user.id,
+                                        agent_id=agent.id,
+                                        customer_number=vapi_call.get("customer", {}).get("number") if vapi_call.get("customer") else "Unknown",
+                                        direction=vapi_call.get("type", "unknown"),
+                                        status=vapi_call.get("status", "completed"),
+                                        duration=vapi_call.get("duration"),
+                                        cost=vapi_call.get("cost"),
+                                        recording_url=vapi_call.get("recordingUrl"),
+                                        transcript=vapi_call.get("transcript", ""),
+                                        ended_reason=vapi_call.get("endedReason"),
+                                        started_at=datetime.fromisoformat(vapi_call.get("startedAt").replace('Z', '+00:00')) if vapi_call.get("startedAt") else None,
+                                        ended_at=datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00')) if vapi_call.get("endedAt") else None,
+                                        created_at=datetime.fromisoformat(vapi_call.get("createdAt").replace('Z', '+00:00')) if vapi_call.get("createdAt") else datetime.utcnow(),
+                                        updated_at=datetime.fromisoformat(vapi_call.get("updatedAt").replace('Z', '+00:00')) if vapi_call.get("updatedAt") else datetime.utcnow()
+                                    )
+                                    db.add(local_call)
+                                    refreshed_count += 1
+                                else:
+                                    # Update existing call with latest data
+                                    local_call.recording_url = vapi_call.get("recordingUrl", local_call.recording_url)
+                                    local_call.transcript = vapi_call.get("transcript", local_call.transcript)
+                                    local_call.status = vapi_call.get("status", local_call.status)
+                                    local_call.duration = vapi_call.get("duration", local_call.duration)
+                                    local_call.cost = vapi_call.get("cost", local_call.cost)
+                                    local_call.ended_reason = vapi_call.get("endedReason", local_call.ended_reason)
+                                    local_call.updated_at = datetime.utcnow()
+                                    refreshed_count += 1
+                                
+                except Exception as e:
+                    print(f"Error refreshing recordings for agent {agent.name} (VAPI ID: {agent.vapi_id}): {str(e)}")
+                    continue
+        
+        # Commit all database changes
+        db.commit()
+        
+        return {
+            "message": f"Successfully refreshed {refreshed_count} call recordings",
+            "refreshed_count": refreshed_count,
+            "agents_processed": len([a for a in user_agents if a.vapi_id])
+        }
+        
+    except Exception as e:
+        print(f"Error refreshing call recordings: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to refresh recordings: {str(e)}")
+
+@app.get("/calls/recordings/by-agent/{agent_id}")
+async def get_recordings_by_agent(agent_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get recordings for a specific agent"""
+    try:
+        # Verify agent belongs to current user
+        agent = db.query(Agent).filter(and_(Agent.id == agent_id, Agent.user_id == current_user.id)).first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        
+        # Get recordings for this agent
+        recordings = db.query(Call).filter(
+            and_(
+                Call.user_id == current_user.id,
+                Call.agent_id == agent_id,
+                Call.recording_url.isnot(None)
+            )
+        ).order_by(desc(Call.ended_at)).all()
+        
+        return recordings
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error fetching recordings by agent: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to fetch recordings: {str(e)}")
 
 @app.get("/calls/queues")
 async def get_call_queues(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -1331,6 +1696,13 @@ async def get_call(call_id: str, current_user: User = Depends(get_current_user),
     call = db.query(Call).filter(and_(Call.id == call_id, Call.user_id == current_user.id)).first()
     if not call:
         raise HTTPException(status_code=404, detail="Call not found")
+        
+@app.get("/calls/vapi/{vapi_id}")
+async def get_call_by_vapi_id(vapi_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get a call by its VAPI ID"""
+    call = db.query(Call).filter(and_(Call.vapi_id == vapi_id, Call.user_id == current_user.id)).first()
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
     
     try:
         # Try to get updated info from VAPI
@@ -1357,6 +1729,76 @@ async def get_call(call_id: str, current_user: User = Depends(get_current_user),
         # Continue with local data
     
     return call
+
+@app.put("/calls/{call_id}")
+async def update_call(
+    call_id: str, 
+    call_update: dict, 
+    current_user: User = Depends(get_current_user), 
+    db: Session = Depends(get_db)
+):
+    """Update a call with new data"""
+    call = db.query(Call).filter(and_(Call.id == call_id, Call.user_id == current_user.id)).first()
+    
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    
+    # Update call fields
+    for field, value in call_update.items():
+        if hasattr(call, field):
+            setattr(call, field, value)
+    
+    call.updated_at = datetime.utcnow()
+    db.commit()
+    db.refresh(call)
+    
+    return call
+
+@app.post("/calls/{call_id}/sync")
+async def sync_call_with_vapi(
+    call_id: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Force sync a call with VAPI to get latest data including recording URL"""
+    call = db.query(Call).filter(and_(Call.id == call_id, Call.user_id == current_user.id)).first()
+    
+    if not call:
+        raise HTTPException(status_code=404, detail="Call not found")
+    
+    if not call.vapi_id:
+        raise HTTPException(status_code=400, detail="Call has no VAPI ID to sync with")
+    
+    try:
+        vapi_call = await call_vapi_api(f"/call/{call.vapi_id}")
+        if not vapi_call:
+            raise HTTPException(status_code=404, detail="Call not found in VAPI")
+            
+        # Update with latest data from VAPI
+        call.status = vapi_call.get("status", call.status)
+        call.duration = vapi_call.get("duration", call.duration)
+        call.cost = vapi_call.get("cost", call.cost)
+        call.recording_url = vapi_call.get("recordingUrl", call.recording_url)
+        call.transcript = vapi_call.get("transcript", call.transcript)
+        call.ended_reason = vapi_call.get("endedReason", call.ended_reason)
+        
+        if vapi_call.get("endedAt") and not call.ended_at:
+            call.ended_at = datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00'))
+        
+        call.updated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(call)
+        
+        return {
+            "message": "Call successfully synced with VAPI",
+            "call": call
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Failed to sync call from VAPI: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to sync with VAPI: {str(e)}")
 
 @app.patch("/calls/{call_id}/end")
 async def end_call(call_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -1815,6 +2257,100 @@ async def vapi_health_check():
             "timestamp": datetime.utcnow().isoformat()
         }
 
+@app.get("/health/voice-check")
+async def voice_check(current_user: User = Depends(get_current_user)):
+    """Run a quick check on voice compatibility with VAPI"""
+    try:
+        # Test a few key voice options (one from each provider)
+        test_voices = [
+            {"provider": "openai", "voice_id": "alloy", "description": "OpenAI Alloy"},
+            {"provider": "azure", "voice_id": "en-US-ChristopherNeural", "description": "Azure Christopher"},
+            {"provider": "11labs", "voice_id": "29vD33N1CtxCmqQRPOHJ", "description": "11Labs Male Voice (Custom)"},
+            {"provider": "11labs", "voice_id": "qBDvhofpxp92JgXJxDjB", "description": "11Labs Female Voice (Custom)"}
+        ]
+        
+        results = []
+        
+        # Create a simple test payload
+        test_payload = {
+            "name": "voice-health-check",
+            "firstMessage": "Voice health check test.",
+            "model": {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "messages": [{"role": "system", "content": "Voice health check."}]
+            },
+            "transcriber": {
+                "provider": "deepgram",
+                "model": "nova-3",
+                "language": "en-US"
+            }
+        }
+        
+        # Test each voice option
+        for voice in test_voices:
+            result = {
+                "provider": voice["provider"],
+                "voice_id": voice["voice_id"],
+                "description": voice["description"],
+                "status": "failed",
+                "message": None
+            }
+            
+            try:
+                # Set the voice configuration
+                test_payload["voice"] = {
+                    "provider": voice["provider"],
+                    "voiceId": voice["voice_id"]
+                }
+                
+                # Add Flash v2.5 model parameters for ElevenLabs
+                if voice["provider"] == "11labs":
+                    test_payload["voice"].update({
+                        "model": "eleven_flash_v2_5",
+                        "stability": 0.5,
+                        "similarityBoost": 0.75
+                    })
+                
+                # Try to create a temporary agent with this voice
+                vapi_agent = await call_vapi_api("/assistant", method="POST", data=test_payload)
+                
+                # If we get here, it worked!
+                result["status"] = "ok"
+                result["message"] = "Voice compatible with VAPI"
+                
+                # Clean up the temporary agent
+                if vapi_agent and vapi_agent.get("id"):
+                    await call_vapi_api(f"/assistant/{vapi_agent['id']}", method="DELETE")
+                
+            except Exception as e:
+                # This voice option didn't work
+                result["message"] = str(e)
+            
+            results.append(result)
+        
+        # Determine overall status based on individual test results
+        overall_status = "ok"
+        if not any(r["status"] == "ok" for r in results):
+            overall_status = "critical"  # All voice providers failed
+        elif any(r["status"] == "failed" for r in results):
+            overall_status = "degraded"  # Some voice providers failed
+        
+        return {
+            "timestamp": datetime.utcnow().isoformat(),
+            "overall_status": overall_status,
+            "voice_checks": results,
+            "message": "Voice compatibility check completed",
+            "recommended_provider": next((r["provider"] for r in results if r["status"] == "ok"), "openai")
+        }
+        
+    except Exception as e:
+        return {
+            "timestamp": datetime.utcnow().isoformat(),
+            "overall_status": "error",
+            "message": f"Voice check failed: {str(e)}"
+        }
+
 # Root endpoint
 @app.get("/")
 async def root():
@@ -2007,6 +2543,103 @@ async def get_call_analytics(
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get analytics: {str(e)}")
+
+@app.get("/voice-options")
+async def list_voice_options(current_user: User = Depends(get_current_user)):
+    """
+    List all available voice options and test VAPI compatibility
+    """
+    try:
+        # Define common voice options we want to check
+        voice_options = [
+            {"provider": "openai", "voice_id": "alloy", "description": "OpenAI Alloy - Neutral"},
+            {"provider": "openai", "voice_id": "echo", "description": "OpenAI Echo - Male"},
+            {"provider": "openai", "voice_id": "fable", "description": "OpenAI Fable - Male"},
+            {"provider": "openai", "voice_id": "nova", "description": "OpenAI Nova - Female"},
+            {"provider": "openai", "voice_id": "shimmer", "description": "OpenAI Shimmer - Female"},
+            {"provider": "azure", "voice_id": "en-US-ChristopherNeural", "description": "Azure Christopher - Male"},
+            {"provider": "azure", "voice_id": "en-US-JennyNeural", "description": "Azure Jenny - Female"},
+            {"provider": "11labs", "voice_id": "29vD33N1CtxCmqQRPOHJ", "description": "11Labs Male Voice (Custom)"},
+            {"provider": "11labs", "voice_id": "qBDvhofpxp92JgXJxDjB", "description": "11Labs Female Voice (Custom)"},
+            {"provider": "11labs", "voice_id": "male-voice", "description": "11Labs Generic Male"},
+            {"provider": "11labs", "voice_id": "female-voice", "description": "11Labs Generic Female"},
+        ]
+        
+        results = []
+        
+        # Create a simple test payload for checking voice compatibility
+        test_payload = {
+            "name": "voice-test-agent",
+            "firstMessage": "This is a test of voice compatibility.",
+            "model": {
+                "provider": "openai",
+                "model": "gpt-4o",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "You are a voice test agent."
+                    }
+                ]
+            },
+            "transcriber": {
+                "provider": "deepgram",
+                "model": "nova-3",
+                "language": "en-US"
+            }
+        }
+        
+        # Test each voice option
+        for option in voice_options:
+            result = {
+                "provider": option["provider"],
+                "voice_id": option["voice_id"],
+                "description": option["description"],
+                "compatible": False,
+                "error": None
+            }
+            
+            try:
+                # Set the voice configuration
+                test_payload["voice"] = {
+                    "provider": option["provider"],
+                    "voiceId": option["voice_id"]
+                }
+                
+                # Add Flash v2.5 model parameters for ElevenLabs
+                if option["provider"] == "11labs":
+                    test_payload["voice"].update({
+                        "model": "eleven_flash_v2_5",
+                        "stability": 0.5,
+                        "similarityBoost": 0.75
+                    })
+                
+                # Try to create a temporary agent with this voice
+                vapi_agent = await call_vapi_api("/assistant", method="POST", data=test_payload)
+                
+                # If we get here, it worked!
+                result["compatible"] = True
+                
+                # Clean up the temporary agent
+                if vapi_agent and vapi_agent.get("id"):
+                    await call_vapi_api(f"/assistant/{vapi_agent['id']}", method="DELETE")
+                
+            except Exception as e:
+                # This voice option didn't work
+                result["error"] = str(e)
+            
+            results.append(result)
+            
+        return {
+            "voice_options": results,
+            "safe_options": [r for r in results if r["compatible"]],
+            "incompatible_options": [r for r in results if not r["compatible"]]
+        }
+        
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to test voice options: {str(e)}"
+        )
 
 if __name__ == "__main__":
     import uvicorn

@@ -1,0 +1,739 @@
+[
+  {
+    "id": "9cccfcda-b38c-4f69-bdb1-6d74938dd194",
+    "assistantId": "2fda500b-33ee-4569-9c46-0811d75fd096",
+    "type": "webCall",
+    "startedAt": "2025-08-04T18:37:59.931Z",
+    "endedAt": "2025-08-04T18:38:12.330Z",
+    "transcript": "AI: Hi.\nUser: Hello?\nAI: Hello? How can I help you today?\nUser: Third circuit.\n",
+    "recordingUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694838-c640de08-2d1b-4d79-beac-ba0030f5c489-mono.wav",
+    "summary": "The AI initiated the call, offering assistance to the user. The user responded with a brief, unelaborated query, \"Third circuit,\" before the call was abruptly ended by the customer.",
+    "createdAt": "2025-08-04T18:37:52.133Z",
+    "updatedAt": "2025-08-04T18:38:17.031Z",
+    "orgId": "6ec0b99e-1f77-4857-865d-27f162f3f757",
+    "cost": 0.0377,
+    "webCallUrl": "https://vapi.daily.co/go2XA890pOHz8M0WYkLM",
+    "status": "ended",
+    "endedReason": "customer-ended-call",
+    "messages": [
+      {  
+        "role": "system",
+        "time": 1754332672933,
+        "message": "Hello!",
+        "secondsFromStart": 0
+      },
+      {
+        "role": "bot",
+        "time": 1754332675934,
+        "source": "",
+        "endTime": 1754332676174,
+        "message": "Hi.",
+        "duration": 240,
+        "secondsFromStart": 2.8799999
+      },
+      {
+        "role": "user",
+        "time": 1754332677833.9998,
+        "endTime": 1754332678154,
+        "message": "Hello?",
+        "duration": 320.000244140625,
+        "secondsFromStart": 4.7799997
+      },
+      {
+        "role": "bot",
+        "time": 1754332679333.9998,
+        "source": "",
+        "endTime": 1754332681394,
+        "message": "Hello? How can I help you today?",
+        "duration": 1680.000244140625,
+        "secondsFromStart": 6.2799997
+      },
+      {
+        "role": "user",
+        "time": 1754332684124,
+        "endTime": 1754332684684,
+        "message": "Third circuit.",
+        "duration": 560,
+        "secondsFromStart": 11.07
+      }
+    ],
+    "stereoRecordingUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694839-8cdb8c42-fac0-492d-a817-84c162547ce5-stereo.wav",
+    "costBreakdown": {
+      "stt": 0.0039,
+      "llm": 0.0011,
+      "tts": 0.0222,
+      "vapi": 0.0103,
+      "chat": 0,
+      "total": 0.0377,
+      "llmPromptTokens": 62,
+      "llmCompletionTokens": 86,
+      "ttsCharacters": 444,
+      "analysisCostBreakdown": {
+        "summary": 0.0001,
+        "structuredData": 0,
+        "successEvaluation": 0.0001,
+        "summaryPromptTokens": 88,
+        "summaryCompletionTokens": 38,
+        "structuredDataPromptTokens": 0,
+        "successEvaluationPromptTokens": 164,
+        "structuredDataCompletionTokens": 0,
+        "successEvaluationCompletionTokens": 6
+      },
+      "knowledgeBaseCost": 0,
+      "voicemailDetectionCost": 0
+    },
+    "assistantOverrides": {
+      "clientMessages": [
+        "transcript",
+        "hang",
+        "metadata",
+        "tool-calls",
+        "tool-calls-result",
+        "tool.completed",
+        "transfer-update",
+        "user-interrupted",
+        "status-update"
+      ]
+    },
+    "analysis": {
+      "summary": "The AI initiated the call, offering assistance to the user. The user responded with a brief, unelaborated query, \"Third circuit,\" before the call was abruptly ended by the customer.",
+      "successEvaluation": "false"
+    },
+    "artifact": {
+      "recordingUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694838-c640de08-2d1b-4d79-beac-ba0030f5c489-mono.wav",
+      "stereoRecordingUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694839-8cdb8c42-fac0-492d-a817-84c162547ce5-stereo.wav",
+      "recording": {
+        "stereoUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694839-8cdb8c42-fac0-492d-a817-84c162547ce5-stereo.wav",
+        "mono": {
+          "combinedUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694838-c640de08-2d1b-4d79-beac-ba0030f5c489-mono.wav",
+          "assistantUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694839-358fab82-b312-4593-9b33-649334489d6b-mono.wav",
+          "customerUrl": "https://storage.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194-1754332694839-93695569-e37c-42f7-8a18-6d3810c1ab11-mono.wav"
+        }
+      },
+      "messages": [
+        {
+          "role": "system",
+          "time": 1754332672933,
+          "message": "Hello!",
+          "secondsFromStart": 0
+        },
+        {
+          "role": "bot",
+          "time": 1754332675934,
+          "source": "",
+          "endTime": 1754332676174,
+          "message": "Hi.",
+          "duration": 240,
+          "secondsFromStart": 2.8799999
+        },
+        {
+          "role": "user",
+          "time": 1754332677833.9998,
+          "endTime": 1754332678154,
+          "message": "Hello?",
+          "duration": 320.000244140625,
+          "secondsFromStart": 4.7799997
+        },
+        {
+          "role": "bot",
+          "time": 1754332679333.9998,
+          "source": "",
+          "endTime": 1754332681394,
+          "message": "Hello? How can I help you today?",
+          "duration": 1680.000244140625,
+          "secondsFromStart": 6.2799997
+        },
+        {
+          "role": "user",
+          "time": 1754332684124,
+          "endTime": 1754332684684,
+          "message": "Third circuit.",
+          "duration": 560,
+          "secondsFromStart": 11.07
+        }
+      ],
+      "messagesOpenAIFormatted": [
+        {
+          "content": "Hello!",
+          "role": "system"
+        },
+        {
+          "content": "Hi.",
+          "role": "assistant"
+        },
+        {
+          "content": "Hello?",
+          "role": "user"
+        },
+        {
+          "content": "Hello? How can I help you today?",
+          "role": "assistant"
+        },
+        {
+          "content": "Third circuit.",
+          "role": "user"
+        }
+      ],
+      "transcript": "AI: Hi.\nUser: Hello?\nAI: Hello? How can I help you today?\nUser: Third circuit.\n",
+      "nodes": [],
+      "variableValues": {},
+      "variables": {}
+    },
+    "costs": [
+      {
+        "cost": 0.0039053,
+        "type": "transcriber",
+        "minutes": 0.2838833333333334,
+        "transcriber": {
+          "model": "nova-3",
+          "provider": "deepgram"
+        }
+      },
+      {
+        "cost": 0.0011175,
+        "type": "model",
+        "model": {
+          "model": "gpt-4o",
+          "provider": "openai"
+        },
+        "promptTokens": 62,
+        "completionTokens": 86
+      },
+      {
+        "cost": 0.0222,
+        "type": "voice",
+        "voice": {
+          "model": "eleven_flash_v2_5",
+          "voiceId": "29vD33N1CtxCmqQRPOHJ",
+          "provider": "11labs"
+        },
+        "characters": 444
+      },
+      {
+        "cost": 0.01033,
+        "type": "vapi",
+        "minutes": 0.2066,
+        "subType": "normal"
+      },
+      {
+        "cost": 0.0001214,
+        "type": "analysis",
+        "model": {
+          "model": "gemini-2.5-flash",
+          "provider": "google"
+        },
+        "analysisType": "summary",
+        "promptTokens": 88,
+        "completionTokens": 38
+      },
+      {
+        "cost": 0.0000642,
+        "type": "analysis",
+        "model": {
+          "model": "gemini-2.5-flash",
+          "provider": "google"
+        },
+        "analysisType": "successEvaluation",
+        "promptTokens": 164,
+        "completionTokens": 6
+      },
+      {
+        "cost": 0,
+        "type": "knowledge-base",
+        "model": {
+          "model": "gemini-1.5-flash",
+          "provider": "google"
+        },
+        "promptTokens": 0,
+        "completionTokens": 0
+      }
+    ],
+    "monitor": {
+      "listenUrl": "wss://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194/listen",
+      "controlUrl": "https://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/9cccfcda-b38c-4f69-bdb1-6d74938dd194/control"
+    },
+    "transport": {
+      "callUrl": "https://vapi.daily.co/go2XA890pOHz8M0WYkLM",
+      "provider": "daily",
+      "assistantVideoEnabled": false
+    }
+  },
+  {
+    "id": "7efcd8f8-9f6d-4504-b67a-bc305ec11e7b",
+    "assistantId": "2fda500b-33ee-4569-9c46-0811d75fd096",
+    "type": "webCall",
+    "startedAt": "2025-08-04T18:25:28.568Z",
+    "endedAt": "2025-08-04T18:25:50.851Z",
+    "transcript": "AI: Hi.\nUser: Hello?\nAI: Hi there. How can I assist you today?\n",
+    "recordingUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-78116ea2-7b1b-42b2-aefa-22e8d481575f-mono.wav",
+    "summary": "The call began with standard greetings, and the AI promptly offered assistance to the user. However, the customer abruptly ended the call before any specific request or issue could be discussed.",
+    "createdAt": "2025-08-04T18:25:15.499Z",
+    "updatedAt": "2025-08-04T18:25:56.033Z",
+    "orgId": "6ec0b99e-1f77-4857-865d-27f162f3f757",
+    "cost": 0.0275,
+    "webCallUrl": "https://vapi.daily.co/SxH7zNVoQo2FPeiwuEY1",
+    "status": "ended",
+    "endedReason": "customer-ended-call",
+    "messages": [
+      {
+        "role": "system",
+        "time": 1754331915674,
+        "message": "Hello!",
+        "secondsFromStart": 0
+      },
+      {
+        "role": "bot",
+        "time": 1754331918753,
+        "source": "",
+        "endTime": 1754331919073,
+        "message": "Hi.",
+        "duration": 320,
+        "secondsFromStart": 2.96
+      },
+      {
+        "role": "user",
+        "time": 1754331922893,
+        "endTime": 1754331923293,
+        "message": "Hello?",
+        "duration": 400,
+        "secondsFromStart": 7.1
+      },
+      {
+        "role": "bot",
+        "time": 1754331924173,
+        "source": "",
+        "endTime": 1754331926853,
+        "message": "Hi there. How can I assist you today?",
+        "duration": 2320,
+        "secondsFromStart": 8.38
+      }
+    ],
+    "stereoRecordingUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-90937fb3-e467-4534-bc4d-7a87ba2c75d4-stereo.wav",
+    "costBreakdown": {
+      "stt": 0.0066,
+      "llm": 0.0003,
+      "tts": 0.002,
+      "vapi": 0.0186,
+      "chat": 0,
+      "total": 0.0275,
+      "llmPromptTokens": 21,
+      "llmCompletionTokens": 11,
+      "ttsCharacters": 39,
+      "analysisCostBreakdown": {
+        "summary": 0.0001,
+        "structuredData": 0,
+        "successEvaluation": 0.0001,
+        "summaryPromptTokens": 83,
+        "summaryCompletionTokens": 35,
+        "structuredDataPromptTokens": 0,
+        "successEvaluationPromptTokens": 159,
+        "structuredDataCompletionTokens": 0,
+        "successEvaluationCompletionTokens": 6
+      },
+      "knowledgeBaseCost": 0,
+      "voicemailDetectionCost": 0
+    },
+    "assistantOverrides": {
+      "clientMessages": [
+        "transcript",
+        "hang",
+        "metadata",
+        "tool-calls",
+        "tool-calls-result",
+        "tool.completed",
+        "transfer-update",
+        "user-interrupted",
+        "status-update"
+      ]
+    },
+    "analysis": {
+      "summary": "The call began with standard greetings, and the AI promptly offered assistance to the user. However, the customer abruptly ended the call before any specific request or issue could be discussed.",
+      "successEvaluation": "false"
+    },
+    "artifact": {
+      "recordingUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-78116ea2-7b1b-42b2-aefa-22e8d481575f-mono.wav",
+      "stereoRecordingUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-90937fb3-e467-4534-bc4d-7a87ba2c75d4-stereo.wav",
+      "recording": {
+        "stereoUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-90937fb3-e467-4534-bc4d-7a87ba2c75d4-stereo.wav",
+        "mono": {
+          "combinedUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-78116ea2-7b1b-42b2-aefa-22e8d481575f-mono.wav",
+          "assistantUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-581d1131-055d-4b56-8807-b76cbd827ccf-mono.wav",
+          "customerUrl": "https://storage.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b-1754331953360-9bb6c9f0-2d0a-4150-bd7e-2a2d22f27441-mono.wav"
+        }
+      },
+      "messages": [
+        {
+          "role": "system",
+          "time": 1754331915674,
+          "message": "Hello!",
+          "secondsFromStart": 0
+        },
+        {
+          "role": "bot",
+          "time": 1754331918753,
+          "source": "",
+          "endTime": 1754331919073,
+          "message": "Hi.",
+          "duration": 320,
+          "secondsFromStart": 2.96
+        },
+        {
+          "role": "user",
+          "time": 1754331922893,
+          "endTime": 1754331923293,
+          "message": "Hello?",
+          "duration": 400,
+          "secondsFromStart": 7.1
+        },
+        {
+          "role": "bot",
+          "time": 1754331924173,
+          "source": "",
+          "endTime": 1754331926853,
+          "message": "Hi there. How can I assist you today?",
+          "duration": 2320,
+          "secondsFromStart": 8.38
+        }
+      ],
+      "messagesOpenAIFormatted": [
+        {
+          "content": "Hello!",
+          "role": "system"
+        },
+        {
+          "content": "Hi.",
+          "role": "assistant"
+        },
+        {
+          "content": "Hello?",
+          "role": "user"
+        },
+        {
+          "content": "Hi there. How can I assist you today?",
+          "role": "assistant"
+        }
+      ],
+      "transcript": "AI: Hi.\nUser: Hello?\nAI: Hi there. How can I assist you today?\n",
+      "nodes": [],
+      "variableValues": {},
+      "variables": {}
+    },
+    "costs": [
+      {
+        "cost": 0.00655865,
+        "type": "transcriber",
+        "minutes": 0.4563333333333333,
+        "transcriber": {
+          "model": "nova-3",
+          "provider": "deepgram"
+        }
+      },
+      {
+        "cost": 0.00027,
+        "type": "model",
+        "model": {
+          "model": "gpt-4o",
+          "provider": "openai"
+        },
+        "promptTokens": 21,
+        "completionTokens": 11
+      },
+      {
+        "cost": 0.00195,
+        "type": "voice",
+        "voice": {
+          "model": "eleven_flash_v2_5",
+          "voiceId": "29vD33N1CtxCmqQRPOHJ",
+          "provider": "11labs"
+        },
+        "characters": 39
+      },
+      {
+        "cost": 0.01857,
+        "type": "vapi",
+        "minutes": 0.3714,
+        "subType": "normal"
+      },
+      {
+        "cost": 0.0001124,
+        "type": "analysis",
+        "model": {
+          "model": "gemini-2.5-flash",
+          "provider": "google"
+        },
+        "analysisType": "summary",
+        "promptTokens": 83,
+        "completionTokens": 35
+      },
+      {
+        "cost": 0.0000627,
+        "type": "analysis",
+        "model": {
+          "model": "gemini-2.5-flash",
+          "provider": "google"
+        },
+        "analysisType": "successEvaluation",
+        "promptTokens": 159,
+        "completionTokens": 6
+      },
+      {
+        "cost": 0,
+        "type": "knowledge-base",
+        "model": {
+          "model": "gemini-1.5-flash",
+          "provider": "google"
+        },
+        "promptTokens": 0,
+        "completionTokens": 0
+      }
+    ],
+    "monitor": {
+      "listenUrl": "wss://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b/listen",
+      "controlUrl": "https://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/7efcd8f8-9f6d-4504-b67a-bc305ec11e7b/control"
+    },
+    "transport": {
+      "callUrl": "https://vapi.daily.co/SxH7zNVoQo2FPeiwuEY1",
+      "provider": "daily",
+      "assistantVideoEnabled": false
+    }
+  },
+  {
+    "id": "2661a4b9-dfc0-4c61-acca-235b99b74394",
+    "assistantId": "2fda500b-33ee-4569-9c46-0811d75fd096",
+    "type": "webCall",
+    "startedAt": "2025-08-04T18:21:08.506Z",
+    "endedAt": "2025-08-04T18:21:16.455Z",
+    "transcript": "AI: Hi.\nUser: Hello?\nAI: Hello? Can I help you today?\n",
+    "recordingUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678961-1574d9d7-5649-448b-8698-8dd41a569c5f-mono.wav",
+    "summary": "The call was extremely brief, consisting only of initial greetings between the AI and the user. The AI offered assistance, but the call was promptly ended by the customer before any substantive conversation could occur.",
+    "createdAt": "2025-08-04T18:20:58.455Z",
+    "updatedAt": "2025-08-04T18:21:21.258Z",
+    "orgId": "6ec0b99e-1f77-4857-865d-27f162f3f757",
+    "cost": 0.0124,
+    "webCallUrl": "https://vapi.daily.co/Dg9SL9s0B2v1dSjMONX4",
+    "status": "ended",
+    "endedReason": "customer-ended-call",
+    "messages": [
+      {
+        "role": "system",
+        "time": 1754331658650,
+        "message": "Hello!",
+        "secondsFromStart": 0
+      },
+      {
+        "role": "bot",
+        "time": 1754331662027,
+        "source": "",
+        "endTime": 1754331662267,
+        "message": "Hi.",
+        "duration": 240,
+        "secondsFromStart": 3.12
+      },
+      {
+        "role": "user",
+        "time": 1754331664087,
+        "endTime": 1754331664327,
+        "message": "Hello?",
+        "duration": 240,
+        "secondsFromStart": 5.18
+      },
+      {
+        "role": "bot",
+        "time": 1754331665537,
+        "source": "",
+        "endTime": 1754331667377,
+        "message": "Hello? Can I help you today?",
+        "duration": 1360,
+        "secondsFromStart": 6.63
+      }
+    ],
+    "stereoRecordingUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678962-bbe3c604-66c1-42dd-9265-8f28eb942e81-stereo.wav",
+    "costBreakdown": {
+      "stt": 0.0036,
+      "llm": 0.0003,
+      "tts": 0.0017,
+      "vapi": 0.0066,
+      "chat": 0,
+      "total": 0.0124,
+      "llmPromptTokens": 21,
+      "llmCompletionTokens": 10,
+      "ttsCharacters": 34,
+      "analysisCostBreakdown": {
+        "summary": 0.0001,
+        "structuredData": 0,
+        "successEvaluation": 0.0001,
+        "summaryPromptTokens": 81,
+        "summaryCompletionTokens": 39,
+        "structuredDataPromptTokens": 0,
+        "successEvaluationPromptTokens": 157,
+        "structuredDataCompletionTokens": 0,
+        "successEvaluationCompletionTokens": 6
+      },
+      "knowledgeBaseCost": 0,
+      "voicemailDetectionCost": 0
+    },
+    "assistantOverrides": {
+      "clientMessages": [
+        "transcript",
+        "hang",
+        "metadata",
+        "tool-calls",
+        "tool-calls-result",
+        "tool.completed",
+        "transfer-update",
+        "user-interrupted",
+        "status-update"
+      ]
+    },
+    "analysis": {
+      "summary": "The call was extremely brief, consisting only of initial greetings between the AI and the user. The AI offered assistance, but the call was promptly ended by the customer before any substantive conversation could occur.",
+      "successEvaluation": "true"
+    },
+    "artifact": {
+      "recordingUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678961-1574d9d7-5649-448b-8698-8dd41a569c5f-mono.wav",
+      "stereoRecordingUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678962-bbe3c604-66c1-42dd-9265-8f28eb942e81-stereo.wav",
+      "recording": {
+        "stereoUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678962-bbe3c604-66c1-42dd-9265-8f28eb942e81-stereo.wav",
+        "mono": {
+          "combinedUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678961-1574d9d7-5649-448b-8698-8dd41a569c5f-mono.wav",
+          "assistantUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678962-4ffe005a-9a79-4648-a31e-9c7568315a68-mono.wav",
+          "customerUrl": "https://storage.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394-1754331678962-fd12c23c-d308-4d25-879c-a27b60144193-mono.wav"
+        }
+      },
+      "messages": [
+        {
+          "role": "system",
+          "time": 1754331658650,
+          "message": "Hello!",
+          "secondsFromStart": 0
+        },
+        {
+          "role": "bot",
+          "time": 1754331662027,
+          "source": "",
+          "endTime": 1754331662267,
+          "message": "Hi.",
+          "duration": 240,
+          "secondsFromStart": 3.12
+        },
+        {
+          "role": "user",
+          "time": 1754331664087,
+          "endTime": 1754331664327,
+          "message": "Hello?",
+          "duration": 240,
+          "secondsFromStart": 5.18
+        },
+        {
+          "role": "bot",
+          "time": 1754331665537,
+          "source": "",
+          "endTime": 1754331667377,
+          "message": "Hello? Can I help you today?",
+          "duration": 1360,
+          "secondsFromStart": 6.63
+        }
+      ],
+      "messagesOpenAIFormatted": [
+        {
+          "content": "Hello!",
+          "role": "system"
+        },
+        {
+          "content": "Hi.",
+          "role": "assistant"
+        },
+        {
+          "content": "Hello?",
+          "role": "user"
+        },
+        {
+          "content": "Hello? Can I help you today?",
+          "role": "assistant"
+        }
+      ],
+      "transcript": "AI: Hi.\nUser: Hello?\nAI: Hello? Can I help you today?\n",
+      "nodes": [],
+      "variableValues": {},
+      "variables": {}
+    },
+    "costs": [
+      {
+        "cost": 0.0036376,
+        "type": "transcriber",
+        "minutes": 0.2112,
+        "transcriber": {
+          "model": "nova-3",
+          "provider": "deepgram"
+        }
+      },
+      {
+        "cost": 0.000255,
+        "type": "model",
+        "model": {
+          "model": "gpt-4o",
+          "provider": "openai"
+        },
+        "promptTokens": 21,
+        "completionTokens": 10
+      },
+      {
+        "cost": 0.0017,
+        "type": "voice",
+        "voice": {
+          "model": "eleven_flash_v2_5",
+          "voiceId": "29vD33N1CtxCmqQRPOHJ",
+          "provider": "11labs"
+        },
+        "characters": 34
+      },
+      {
+        "cost": 0.006625,
+        "type": "vapi",
+        "minutes": 0.1325,
+        "subType": "normal"
+      },
+      {
+        "cost": 0.0001218,
+        "type": "analysis",
+        "model": {
+          "model": "gemini-2.5-flash",
+          "provider": "google"
+        },
+        "analysisType": "summary",
+        "promptTokens": 81,
+        "completionTokens": 39
+      },
+      {
+        "cost": 0.0000621,
+        "type": "analysis",
+        "model": {
+          "model": "gemini-2.5-flash",
+          "provider": "google"
+        },
+        "analysisType": "successEvaluation",
+        "promptTokens": 157,
+        "completionTokens": 6
+      },
+      {
+        "cost": 0,
+        "type": "knowledge-base",
+        "model": {
+          "model": "gemini-1.5-flash",
+          "provider": "google"
+        },
+        "promptTokens": 0,
+        "completionTokens": 0
+      }
+    ],
+    "monitor": {
+      "listenUrl": "wss://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394/listen",
+      "controlUrl": "https://phone-call-websocket.aws-us-west-2-backend-production1.vapi.ai/2661a4b9-dfc0-4c61-acca-235b99b74394/control"
+    },
+    "transport": {
+      "callUrl": "https://vapi.daily.co/Dg9SL9s0B2v1dSjMONX4",
+      "provider": "daily",
+      "assistantVideoEnabled": false
+    }
+  }
+]

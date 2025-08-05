@@ -136,6 +136,26 @@ class VapiService {
   async getCall(callId) {
     return this.makeRequest(`/call/${callId}`, { method: 'GET' });
   }
+  
+  /**
+   * Get call from our system by VAPI ID
+   * @param {string} vapiId - The VAPI call ID
+   * @returns {Promise<Object>} Call details from our system
+   */
+  async getCallByVapiId(vapiId) {
+    // We need to call our backend API to find the call by VAPI ID
+    // This assumes we have an endpoint like /api/calls/vapi/{vapiId}
+    try {
+      const response = await fetch(`/api/calls/vapi/${vapiId}`);
+      if (!response.ok) {
+        throw new Error(`Failed to get call by VAPI ID: ${response.statusText}`);
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('Error in getCallByVapiId:', error);
+      throw error;
+    }
+  }
 
   /**
    * Create a new call

@@ -25,15 +25,31 @@ import { useCalls, usePagination, useSearchFilter } from "../hooks/useApi";
 import toast from "react-hot-toast";
 
 const PostCall = () => {
-  const { calls, loading, error, analytics } = useCalls();
+  const { calls, activeCalls, loading, error, analytics, fetchCalls } =
+    useCalls();
   const [selectedCall, setSelectedCall] = useState(null);
   const [viewMode, setViewMode] = useState("list"); // 'list', 'analytics'
   const [filterStatus, setFilterStatus] = useState("all");
   const [dateRange, setDateRange] = useState("all");
 
+  // Auto-refresh calls data every 30 seconds to update live calls
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      if (calls.some(isActiveCall)) {
+        // Only refresh if there are active calls
+        fetchCalls(false); // Skip cache to get fresh data
+      }
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [calls, fetchCalls]);
+
   // Filter calls by status
   const filteredByStatus = calls.filter((call) => {
     if (filterStatus === "all") return true;
+    if (filterStatus === "active-calls") {
+      return isActiveCall(call);
+    }
     return call.status === filterStatus;
   });
 
@@ -70,10 +86,30 @@ const PostCall = () => {
     }).format(amount || 0);
   };
 
+  // Define active call statuses
+  const activeCallStatuses = [
+    "queued",
+    "ringing",
+    "in-progress",
+    "forwarding",
+    "speaking",
+  ];
+
+  // Helper function to check if a call is active/live
+  const isActiveCall = (call) => {
+    return activeCallStatuses.includes(call.status);
+  };
+
   const getStatusColor = (status) => {
     switch (status) {
       case "completed":
         return "bg-green-100 text-green-800 border-green-200";
+      case "in-progress":
+      case "speaking":
+      case "ringing":
+      case "queued":
+      case "forwarding":
+        return "bg-blue-100 text-blue-800 border-blue-200";
       case "busy":
         return "bg-yellow-100 text-yellow-800 border-yellow-200";
       case "no-answer":
@@ -191,7 +227,18 @@ const PostCall = () => {
                         call.status
                       )}`}
                     >
-                      {call.status}
+                      {call.status === "in-progress" ||
+                      call.status === "speaking" ||
+                      call.status === "ringing" ? (
+                        <>
+                          <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1.5"></span>
+                          {call.status === "in-progress"
+                            ? "Live Call"
+                            : call.status}
+                        </>
+                      ) : (
+                        call.status
+                      )}
                     </span>
                   </div>
                 </div>
@@ -249,6 +296,31 @@ const PostCall = () => {
                 </h3>
                 <div className="bg-gray-50 rounded-lg p-4">
                   <p className="text-gray-700">{call.summary}</p>
+                </div>
+              </div>
+            )}
+
+            {/* Recording */}
+            {call.recording_url && (
+              <div className="mt-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-3">
+                  Call Recording
+                </h3>
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <audio controls className="w-full" src={call.recording_url}>
+                    Your browser does not support the audio element.
+                  </audio>
+                  <div className="mt-2 text-sm text-gray-600">
+                    <a
+                      href={call.recording_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline flex items-center"
+                    >
+                      <Download className="w-4 h-4 mr-1" />
+                      Download recording
+                    </a>
+                  </div>
                 </div>
               </div>
             )}
@@ -423,6 +495,63 @@ const PostCall = () => {
       ) : (
         // Filters and Search
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+          {/* Active calls banner */}
+          {activeCalls &&
+            Array.isArray(activeCalls) &&
+            activeCalls.length > 0 && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-6">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse mr-2"></div>
+                    <h3 className="text-green-800 font-medium">
+                      {activeCalls.length} Active{" "}
+                      {activeCalls.length === 1 ? "Call" : "Calls"}
+                    </h3>
+                  </div>
+                  <button
+                    className="text-green-700 bg-green-100 hover:bg-green-200 px-3 py-1 rounded-md text-sm font-medium transition-colors"
+                    onClick={() => setFilterStatus("active-calls")}
+                  >
+                    View Live Calls
+                  </button>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {activeCalls.slice(0, 3).map((call) => (
+                    <div
+                      key={call.id}
+                      className="flex items-center bg-white border border-green-200 rounded-md px-3 py-2"
+                    >
+                      <Phone className="w-4 h-4 text-green-600 mr-2" />
+                      <span className="text-sm">
+                        {call.customer_number || "Unknown caller"}
+                      </span>
+                      <span className="mx-1 text-gray-400">•</span>
+                      <span className="text-sm text-gray-600">
+                        {formatDuration(
+                          Math.floor(
+                            (new Date() -
+                              new Date(call.started_at || call.created_at)) /
+                              1000
+                          )
+                        )}
+                      </span>
+                      <button
+                        className="ml-2 text-blue-600 hover:text-blue-800"
+                        onClick={() => setSelectedCall(call)}
+                      >
+                        <Eye className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                  {activeCalls.length > 3 && (
+                    <div className="text-sm text-green-700">
+                      +{activeCalls.length - 3} more
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
           <div className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
               <div className="flex items-center space-x-4">
@@ -443,6 +572,7 @@ const PostCall = () => {
                   className="border border-gray-300 rounded-lg px-4 py-2"
                 >
                   <option value="all">All Status</option>
+                  <option value="active-calls">Active/Live Calls</option>
                   <option value="completed">Completed</option>
                   <option value="busy">Busy</option>
                   <option value="no-answer">No Answer</option>
@@ -559,7 +689,18 @@ const PostCall = () => {
                               call.status
                             )}`}
                           >
-                            {call.status}
+                            {call.status === "in-progress" ||
+                            call.status === "speaking" ||
+                            call.status === "ringing" ? (
+                              <>
+                                <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-1.5"></span>
+                                {call.status === "in-progress"
+                                  ? "Live Call"
+                                  : call.status}
+                              </>
+                            ) : (
+                              call.status
+                            )}
                           </span>
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">

@@ -180,10 +180,14 @@ export const useCalls = () => {
 
   const createCall = useCallback(async (callData) => {
     try {
+      // Add support for web calls by checking if it's a web call type
+      const isWebCall = callData.type === 'webCall';
+      
       const newCall = await apiService.createCall(callData);
       setCalls(prev => [newCall, ...prev]);
       setActiveCalls(prev => [newCall, ...prev]);
-      toast.success('Call initiated successfully');
+      
+      toast.success(isWebCall ? 'Web call initiated successfully' : 'Call initiated successfully');
       return { success: true, data: newCall };
     } catch (err) {
       const error = err.response?.data?.detail || 'Failed to create call';
@@ -205,6 +209,23 @@ export const useCalls = () => {
     return () => apiService.stopPolling(pollId);
   }, []);
 
+  // Specific method to fetch recordings only
+  const fetchRecordings = useCallback(async (useCache = true, forceSync = false) => {
+    try {
+      setLoading(true);
+      const recordingsData = await apiService.getCallRecordings(useCache, forceSync);
+      setRecordings(recordingsData);
+      setError(null);
+      return recordingsData;
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to fetch recordings');
+      toast.error('Failed to load recordings');
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+  
   return {
     calls,
     activeCalls,
@@ -213,6 +234,7 @@ export const useCalls = () => {
     loading,
     error,
     fetchCalls,
+    fetchRecordings,
     createCall,
     refetch: () => fetchCalls(false)
   };
