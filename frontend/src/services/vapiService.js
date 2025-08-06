@@ -298,8 +298,11 @@ class VapiService {
         call.createdAt && new Date(call.createdAt) > sevenDaysAgo
       );
 
-      // Calculate total cost
-      const totalCost = calls.reduce((sum, call) => sum + (call.cost || 0), 0);
+      // Calculate total cost with safety checks
+      const totalCost = calls.reduce((sum, call) => {
+        const cost = parseFloat(call.cost) || 0;
+        return sum + cost;
+      }, 0);
 
       // Calculate average call duration
       const completedCalls = calls.filter(call => call.startedAt && call.endedAt);
@@ -315,7 +318,7 @@ class VapiService {
         totalAgents: assistants.length,
         totalCalls: calls.length,
         recentCalls: recentCalls.length,
-        totalCost: totalCost.toFixed(2),
+        totalCost: (typeof totalCost === 'number' && !isNaN(totalCost)) ? totalCost.toFixed(2) : "0.00",
         averageDuration: Math.round(averageDuration * 100) / 100, // Round to 2 decimal places
         activeAgents: assistants.filter(agent => 
           // Consider an agent active if it has recent calls

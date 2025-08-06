@@ -41,7 +41,10 @@ export const useDashboardData = () => {
             hour: '2-digit', 
             minute: '2-digit' 
           }),
-          cost: call.cost ? `$${call.cost.toFixed(2)}` : '$0.00',
+          cost: (() => {
+            const costValue = parseFloat(call.cost);
+            return (!isNaN(costValue) && costValue > 0) ? `$${costValue.toFixed(2)}` : '$0.00';
+          })(),
         }));
 
       // Fetch agents (will be filtered by user in backend)
@@ -66,7 +69,10 @@ export const useDashboardData = () => {
           ? Math.round((completedCalls.length / totalCalls) * 100) 
           : 0;
           
-        const totalCost = agentCalls.reduce((sum, call) => sum + (call.cost || 0), 0);
+        const totalCost = agentCalls.reduce((sum, call) => {
+          const cost = parseFloat(call.cost) || 0;
+          return sum + cost;
+        }, 0);
           
         topAgents.push({
           id: agent.id,
@@ -74,7 +80,7 @@ export const useDashboardData = () => {
           calls: totalCalls,
           successRate: successRate,
           avgDuration: avgDuration ? `${Math.floor(avgDuration / 60)}:${(avgDuration % 60).toString().padStart(2, '0')}` : '0:00',
-          cost: `$${totalCost.toFixed(2)}`,
+          cost: `$${(typeof totalCost === 'number' && !isNaN(totalCost)) ? totalCost.toFixed(2) : '0.00'}`,
         });
       }
       
