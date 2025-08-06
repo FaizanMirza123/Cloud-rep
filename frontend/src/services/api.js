@@ -170,10 +170,23 @@ class ApiService {
       if (value !== undefined) queryParams.append(key, value);
     });
     
-    return this.apiCall(`/calls${queryParams.toString() ? `?${queryParams.toString()}` : ''}`, {
+    const endpoint = `/calls${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+    console.log('API: Fetching calls from endpoint:', endpoint);
+    console.log('API: Query params:', params);
+    console.log('API: useCache:', useCache);
+    
+    const result = await this.apiCall(endpoint, {
       cache: useCache,
       cacheDuration: 30 * 1000 // 30 seconds for calls
     });
+    
+    console.log('API: getCalls result:', { 
+      count: result?.length || 0, 
+      sample: result?.slice(0, 2),
+      hasTranscripts: result?.filter(call => call.transcript)?.length || 0
+    });
+    
+    return result;
   }
 
   async getAgentCalls(agentId, useCache = true) {
@@ -230,18 +243,29 @@ class ApiService {
     });
   }
 
+  // Debug method to test VAPI call fetching
+  async testVapiCalls(agentId) {
+    console.log('API: Testing VAPI calls for agent:', agentId);
+    return this.apiCall(`/test-vapi-calls/${agentId}`, { cache: false });
+  }
+
+  // Debug agents and their VAPI IDs
+  async debugAgents() {
+    return this.apiCall('/debug-agents', { cache: false });
+  }
+
+  // Direct VAPI transcript fetch
+  async getCallTranscripts(agentId = null, useCache = false) {
+    const params = agentId ? { assistantId: agentId } : {};
+    console.log('API: Fetching call transcripts with params:', params);
+    return this.getCalls(params, useCache);
+  }
+
   // Analytics API methods
   async getDashboardAnalytics(useCache = true) {
     return this.apiCall('/analytics/dashboard', { 
       cache: useCache,
       cacheDuration: 2 * 60 * 1000 // 2 minutes for analytics
-    });
-  }
-  
-  async getAgentCalls(agentId, useCache = true) {
-    return this.apiCall(`/calls?agent_id=${agentId}`, {
-      cache: useCache,
-      cacheDuration: 30 * 1000 // 30 seconds for calls
     });
   }
 

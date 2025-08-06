@@ -11,7 +11,6 @@ import {
   Phone,
   Bot,
   Filter,
-  RefreshCw,
 } from "lucide-react";
 import {
   PageTransition,
@@ -19,107 +18,18 @@ import {
   LoadingSpinner,
   ButtonHover,
 } from "../components/AnimationComponents";
-import {
-  useCalls,
-  usePagination,
-  useSearchFilter,
-  useAgents,
-} from "../hooks/useApi";
+import { useCalls, usePagination, useSearchFilter } from "../hooks/useApi";
 import CallTranscript from "../components/CallTranscript";
-import apiService from "../services/api";
 import toast from "react-hot-toast";
 
 const PostCall = () => {
-  const { agents } = useAgents();
   const { calls, loading, error, fetchCalls } = useCalls();
   const [selectedCall, setSelectedCall] = useState(null);
   const [showTranscriptModal, setShowTranscriptModal] = useState(false);
   const [dateRange, setDateRange] = useState("all");
-  const [selectedAgent, setSelectedAgent] = useState(""); // Start with no agent selected
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [agentCalls, setAgentCalls] = useState([]);
-
-  // Fetch calls for specific agent
-  const fetchCallsData = async (agentId = null, showToast = false) => {
-    try {
-      setIsRefreshing(true);
-      let callsData = [];
-
-      if (!agentId) {
-        console.log("PostCall: No agent selected");
-        setAgentCalls([]);
-        return;
-      }
-
-      // Fetch calls for specific agent using assistantId parameter (VAPI format)
-      console.log(`PostCall: Fetching calls for agent: ${agentId}`);
-
-      // First try the direct VAPI test to see what's available
-      try {
-        const testResult = await apiService.testVapiCalls(agentId);
-        console.log("PostCall: VAPI test result:", testResult);
-
-        if (testResult.calls_count > 0) {
-          console.log(
-            `PostCall: VAPI has ${testResult.calls_count} calls, ${testResult.calls_with_transcripts} with transcripts`
-          );
-        } else {
-          console.log("PostCall: No calls found in VAPI for this agent");
-        }
-      } catch (testError) {
-        console.warn("PostCall: VAPI test failed:", testError.message);
-      }
-
-      // Now fetch through the regular endpoint
-      callsData = await apiService.getCallTranscripts(agentId);
-      console.log(
-        `PostCall: Found ${callsData.length} calls for agent ${agentId}`
-      );
-
-      // Add agent names to calls
-      const callsWithAgentNames = callsData.map((call) => {
-        const agent = agents.find((a) => a.id === call.agent_id);
-        return {
-          ...call,
-          agent_name: agent ? agent.name : "Unknown Agent",
-        };
-      });
-
-      const transcriptCount = callsWithAgentNames.filter(
-        (call) => call.transcript && call.transcript.trim()
-      ).length;
-      console.log("PostCall: Calls with transcripts:", transcriptCount);
-      console.log(
-        "PostCall: Sample call with transcript:",
-        callsWithAgentNames.find((call) => call.transcript)
-      );
-
-      setAgentCalls(callsWithAgentNames);
-      if (showToast) {
-        toast.success(
-          `Refreshed ${callsWithAgentNames.length} calls (${transcriptCount} with transcripts)`
-        );
-      }
-    } catch (err) {
-      console.error("PostCall: Error fetching calls:", err);
-      toast.error(`Failed to fetch calls: ${err.message}`);
-      setAgentCalls([]);
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-
-  // Load calls when agent selection changes (only if agent is selected)
-  useEffect(() => {
-    if (selectedAgent) {
-      fetchCallsData(selectedAgent);
-    } else {
-      setAgentCalls([]);
-    }
-  }, [selectedAgent]);
 
   // Filter calls that have transcripts
-  const callsWithTranscripts = agentCalls.filter(
+  const callsWithTranscripts = calls.filter(
     (call) => call.transcript && call.transcript.trim()
   );
 
@@ -268,37 +178,13 @@ const PostCall = () => {
               </p>
             </div>
           </div>
-          <div className="flex items-center space-x-3">
-            <ButtonHover
-              onClick={exportCallLogs}
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export Transcripts</span>
-            </ButtonHover>
-
-            <ButtonHover
-              onClick={async () => {
-                try {
-                  const result = await apiService.debugAgents();
-                  console.log("Debug Agents Result:", result);
-                  const agentsWithVapi = result.agents.filter(
-                    (a) => a.has_vapi_id
-                  ).length;
-                  toast.success(
-                    `Found ${result.total_agents} agents, ${agentsWithVapi} have VAPI IDs`
-                  );
-                } catch (error) {
-                  console.error("Debug Agents Error:", error);
-                  toast.error(`Debug Failed: ${error.message}`);
-                }
-              }}
-              className="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 flex items-center space-x-2"
-            >
-              <Bot className="w-4 h-4" />
-              <span>Debug Agents</span>
-            </ButtonHover>
-          </div>
+          <ButtonHover
+            onClick={exportCallLogs}
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2"
+          >
+            <Download className="w-4 h-4" />
+            <span>Export Transcripts</span>
+          </ButtonHover>
         </div>
       </div>
 
@@ -391,22 +277,6 @@ const PostCall = () => {
               </div>
 
               <div className="flex items-center space-x-2">
-                <Bot className="w-4 h-4 text-gray-400" />
-                <select
-                  value={selectedAgent}
-                  onChange={(e) => setSelectedAgent(e.target.value)}
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Select an Agent</option>
-                  {agents.map((agent) => (
-                    <option key={agent.id} value={agent.id}>
-                      {agent.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="flex items-center space-x-2">
                 <Filter className="w-4 h-4 text-gray-400" />
                 <select
                   value={dateRange}
@@ -419,17 +289,6 @@ const PostCall = () => {
                   <option value="month">This Month</option>
                 </select>
               </div>
-
-              <ButtonHover
-                onClick={() => fetchCallsData(selectedAgent, true)}
-                disabled={isRefreshing || !selectedAgent}
-                className="bg-gray-100 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-200 flex items-center space-x-2 disabled:opacity-50"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-                />
-                <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
-              </ButtonHover>
             </div>
 
             <div className="text-sm text-gray-600">
@@ -452,47 +311,13 @@ const PostCall = () => {
           <div className="p-8 text-center">
             <MessageSquare className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">
-              No Call Transcripts Found
+              No Call Transcripts
             </h3>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600">
               {searchTerm
                 ? "No transcripts match your search criteria."
-                : !selectedAgent
-                ? "Please select an agent to view call transcripts."
-                : agentCalls.length === 0
-                ? "No calls found for the selected agent. Make sure your agent has received calls with completed conversations."
-                : "No calls have transcripts yet. Transcripts are generated automatically when calls are completed."}
+                : "No call transcripts available yet. Transcripts will appear here after calls with your AI assistant."}
             </p>
-            {!selectedAgent ? (
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                <p className="text-blue-800 text-sm">
-                  <strong>To see transcripts:</strong>
-                  <br />
-                  1. Select an agent from the dropdown above
-                  <br />
-                  2. The agent must have received calls with completed
-                  conversations
-                  <br />
-                  3. Transcripts are automatically generated for completed calls
-                </p>
-              </div>
-            ) : (
-              agentCalls.length === 0 && (
-                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
-                  <p className="text-blue-800 text-sm">
-                    <strong>To see transcripts for this agent:</strong>
-                    <br />
-                    1. Make sure the agent is properly set up in VAPI
-                    <br />
-                    2. Set up a phone number and connect it to your agent
-                    <br />
-                    3. Make test calls or receive real calls
-                    <br />
-                    4. Completed calls will show transcripts here
-                  </p>
-                </div>
-              )
-            )}
           </div>
         ) : (
           <>

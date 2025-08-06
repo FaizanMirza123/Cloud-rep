@@ -13,9 +13,7 @@ import {
   X,
   Bell,
   PhoneCall,
-  Clock,
   Mic,
-  PhoneOff,
   Archive,
 } from "lucide-react";
 
@@ -58,15 +56,12 @@ const Layout = ({ children }) => {
     { name: "Agents", href: "/agents", icon: Bot },
     { name: "Phone Numbers", href: "/phone-numbers", icon: Phone },
     {
-      name: "Telephony",
+      name: "Calls",
       href: "#",
       icon: PhoneCall,
       children: [
-        { name: "Active Calls", href: "/calls/active", icon: PhoneCall },
-        { name: "Call Queues", href: "/calls/queues", icon: Clock },
         { name: "Recordings", href: "/calls/recordings", icon: Mic },
-        { name: "Missed Calls", href: "/calls/missed", icon: PhoneOff },
-        { name: "Post-Call", href: "/calls/post-call", icon: Archive },
+        { name: "Transcripts", href: "/calls/post-call", icon: Archive },
       ],
     },
     { name: "Analytics", href: "/analytics", icon: BarChart3 },

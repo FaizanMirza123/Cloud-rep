@@ -24,10 +24,7 @@ import AgentCreationWizard from "./components/AgentCreationWizard";
 import PhoneNumbers from "./pages/PhoneNumbers";
 import Analytics from "./pages/Analytics";
 import LandingPage from "./pages/LandingPage";
-import ActiveCalls from "./pages/ActiveCalls";
-import CallQueues from "./pages/CallQueues";
 import CallRecordings from "./pages/CallRecordings";
-import MissedCalls from "./pages/MissedCalls";
 import PostCall from "./pages/PostCall";
 import "./App.css";
 
@@ -186,41 +183,11 @@ function App() {
             }
           />
           <Route
-            path="/calls/active"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <ActiveCalls />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/calls/queues"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <CallQueues />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/calls/recordings"
             element={
               <ProtectedRoute>
                 <Layout>
                   <CallRecordings />
-                </Layout>
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/calls/missed"
-            element={
-              <ProtectedRoute>
-                <Layout>
-                  <MissedCalls />
                 </Layout>
               </ProtectedRoute>
             }

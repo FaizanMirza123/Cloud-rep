@@ -200,14 +200,14 @@ export const useCalls = () => {
     fetchCalls();
   }, [fetchCalls]);
 
-  // Real-time polling for active calls
-  useEffect(() => {
-    const pollId = apiService.startPolling('/calls/active', (data) => {
-      setActiveCalls(data);
-    }, 3000); // Poll every 3 seconds
+  // // Real-time polling for active calls
+  // useEffect(() => {
+  //   const pollId = apiService.startPolling('/calls/active', (data) => {
+  //     setActiveCalls(data);
+  //   }, 3000); // Poll every 3 seconds
 
-    return () => apiService.stopPolling(pollId);
-  }, []);
+  //   return () => apiService.stopPolling(pollId);
+  // }, []);
 
   // Specific method to fetch recordings only
   const fetchRecordings = useCallback(async (useCache = true, forceSync = false) => {
