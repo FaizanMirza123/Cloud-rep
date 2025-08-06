@@ -51,6 +51,8 @@ class Agent(Base):
     model = Column(String, default="gpt-4o")
     model_provider = Column(String, default="openai")
     language = Column(String, default="en-US")
+    knowledge_base_id = Column(String, nullable=True)  # VAPI knowledge base ID
+    knowledge_base_name = Column(String, nullable=True)  # Knowledge base name
     status = Column(String, default="creating")
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

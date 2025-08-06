@@ -98,6 +98,9 @@ class AgentCreate(BaseModel):
     model: str = "gpt-4o"
     modelProvider: str = "openai"
     language: str = "en-US"
+    knowledgeBaseName: Optional[str] = None
+    knowledgeBaseFile: Optional[str] = None  # Base64 encoded file content
+    knowledgeBaseFileName: Optional[str] = None
 
 class AgentUpdate(BaseModel):
     name: Optional[str] = None
@@ -112,6 +115,9 @@ class AgentUpdate(BaseModel):
     model: Optional[str] = None
     modelProvider: Optional[str] = None
     language: Optional[str] = None
+    knowledgeBaseName: Optional[str] = None
+    knowledgeBaseFile: Optional[str] = None
+    knowledgeBaseFileName: Optional[str] = None
 
 class PhoneNumberCreate(BaseModel):
     name: str
@@ -323,6 +329,67 @@ async def call_vapi_api(endpoint: str, method: str = "GET", data: dict = None):
             print(f"VAPI Unknown Error: {str(e)}")  # Debug logging
             raise HTTPException(status_code=500, detail=f"VAPI API call failed: {str(e)}")
 
+async def create_knowledge_base(name: str, file_content: str, file_name: str):
+    """Create a knowledge base in VAPI with uploaded file"""
+    try:
+        import base64
+        import tempfile
+        import os
+        
+        # Decode base64 file content
+        file_data = base64.b64decode(file_content)
+        
+        # Create temporary file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=f"_{file_name}") as temp_file:
+            temp_file.write(file_data)
+            temp_file_path = temp_file.name
+        
+        try:
+            # For VAPI provider, we create a simple knowledge base and upload the file
+            kb_payload = {
+                "name": name,
+                "provider": "vapi"  # Using vapi provider for direct file upload
+            }
+            
+            # Create the knowledge base first
+            kb_response = await call_vapi_api("/knowledge-base", method="POST", data=kb_payload)
+            kb_id = kb_response.get("id")
+            
+            if not kb_id:
+                raise HTTPException(status_code=500, detail="Failed to create knowledge base")
+            
+            # Upload file to the knowledge base using multipart form data
+            async with httpx.AsyncClient() as client:
+                headers = {
+                    "Authorization": f"Bearer {VAPI_API_KEY}",
+                }
+                
+                with open(temp_file_path, 'rb') as f:
+                    files = {'file': (file_name, f, 'application/octet-stream')}
+                    upload_url = f"{VAPI_BASE_URL}/knowledge-base/{kb_id}/files"
+                    
+                    upload_response = await client.post(
+                        upload_url,
+                        headers=headers,
+                        files=files
+                    )
+                    
+                    if upload_response.status_code >= 400:
+                        print(f"File upload warning: {upload_response.text}")
+                        # Continue even if file upload fails - KB can be populated manually
+            
+            return kb_response
+            
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
+    
+    except Exception as e:
+        print(f"Knowledge base creation error: {str(e)}")
+        # Instead of raising exception, return None and let agent creation continue
+        return None
+
 # Auth routes
 @app.post("/auth/register")
 async def register(user_data: UserRegister, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
@@ -514,6 +581,24 @@ async def get_agents(current_user: User = Depends(get_current_user), db: Session
 async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Create a new agent using VAPI API"""
     try:
+        # Handle knowledge base creation if provided
+        knowledge_base_id = None
+        if agent_data.knowledgeBaseName and agent_data.knowledgeBaseFile and agent_data.knowledgeBaseFileName:
+            try:
+                kb_response = await create_knowledge_base(
+                    name=agent_data.knowledgeBaseName,
+                    file_content=agent_data.knowledgeBaseFile,
+                    file_name=agent_data.knowledgeBaseFileName
+                )
+                if kb_response:
+                    knowledge_base_id = kb_response.get("id")
+                    print(f"Created knowledge base with ID: {knowledge_base_id}")
+                else:
+                    print("Knowledge base creation failed, continuing without it")
+            except Exception as e:
+                print(f"Warning: Failed to create knowledge base: {str(e)}")
+                # Continue with agent creation even if knowledge base fails
+        
         # Create simplified VAPI agent payload
         vapi_payload = {
             "name": agent_data.name,
@@ -536,6 +621,10 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
                 "language": agent_data.language or "en-US"
             }
         }
+        
+        # Add knowledge base to model if created successfully
+        if knowledge_base_id:
+            vapi_payload["model"]["knowledgeBaseId"] = knowledge_base_id
         
         # Handle voice configuration using our helper function
         provider = agent_data.voiceProvider or "openai"
@@ -588,6 +677,8 @@ async def create_agent(agent_data: AgentCreate, current_user: User = Depends(get
             model=agent_data.model,
             model_provider=agent_data.modelProvider,
             language=agent_data.language,
+            knowledge_base_id=knowledge_base_id,
+            knowledge_base_name=agent_data.knowledgeBaseName,
             status="active"
         )
         
@@ -863,6 +954,34 @@ async def test_agent(
         
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to initiate test call: {str(e)}")
+
+# Knowledge Base routes
+@app.get("/knowledge-bases")
+async def get_knowledge_bases(current_user: User = Depends(get_current_user)):
+    """Get all knowledge bases from VAPI"""
+    try:
+        knowledge_bases = await call_vapi_api("/knowledge-base")
+        return knowledge_bases
+    except Exception as e:
+        print(f"Error fetching knowledge bases: {str(e)}")
+        return []
+
+@app.post("/knowledge-bases")
+async def create_knowledge_base_endpoint(
+    name: str,
+    file: str,  # Base64 encoded file
+    filename: str,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a knowledge base with file upload"""
+    try:
+        kb_response = await create_knowledge_base(name, file, filename)
+        if kb_response:
+            return kb_response
+        else:
+            raise HTTPException(status_code=500, detail="Failed to create knowledge base")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Knowledge base creation failed: {str(e)}")
 
 # Phone number routes
 @app.get("/phone-numbers")

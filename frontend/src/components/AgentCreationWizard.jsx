@@ -12,6 +12,9 @@ import {
   Lightbulb,
   Copy,
   RefreshCw,
+  BookOpen,
+  Upload,
+  Check,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAgents } from "../hooks/useApi";
@@ -43,7 +46,12 @@ const AgentCreationWizard = () => {
     modelProvider: "openai",
     language: "en-US",
     customInstructions: "",
+    knowledgeBaseName: "",
+    knowledgeBaseFile: null,
+    knowledgeBaseFileName: "",
   });
+
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const [promptConfig, setPromptConfig] = useState({
     useTemplate: true,
@@ -54,9 +62,10 @@ const AgentCreationWizard = () => {
   const steps = [
     { id: 1, name: "Basic Info", icon: Settings },
     { id: 2, name: "AI Configuration", icon: Brain },
-    { id: 3, name: "Voice & Speech", icon: Mic },
-    { id: 4, name: "Prompt & Personality", icon: MessageSquare },
-    { id: 5, name: "Review & Pricing", icon: DollarSign },
+    { id: 3, name: "Knowledge Base", icon: BookOpen },
+    { id: 4, name: "Voice & Speech", icon: Mic },
+    { id: 5, name: "Prompt & Personality", icon: MessageSquare },
+    { id: 6, name: "Review & Pricing", icon: DollarSign },
   ];
 
   const industries = [
@@ -298,6 +307,44 @@ const AgentCreationWizard = () => {
     }));
   };
 
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB");
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = [
+        "text/plain",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Only .txt, .pdf, .docx, and .doc files are allowed");
+        return;
+      }
+
+      setSelectedFile(file);
+
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result.split(",")[1]; // Remove data:type;base64, prefix
+        setAgentData((prev) => ({
+          ...prev,
+          knowledgeBaseFile: base64,
+          knowledgeBaseFileName: file.name,
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const nextStep = () => {
     if (currentStep < steps.length) {
       setCurrentStep(currentStep + 1);
@@ -332,10 +379,12 @@ const AgentCreationWizard = () => {
       case 2:
         return renderAIConfigStep();
       case 3:
-        return renderVoiceStep();
+        return renderKnowledgeBaseStep();
       case 4:
-        return renderPromptStep();
+        return renderVoiceStep();
       case 5:
+        return renderPromptStep();
+      case 6:
         return renderReviewStep();
       default:
         return null;
@@ -529,6 +578,78 @@ const AgentCreationWizard = () => {
                 interactions
               </li>
             </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderKnowledgeBaseStep = () => (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+          Knowledge Base (Optional)
+        </h3>
+        <p className="text-gray-600 mb-6">
+          Upload a file to give your agent specific knowledge about your
+          business, products, or services.
+        </p>
+
+        <div className="space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Knowledge Base Name
+            </label>
+            <input
+              type="text"
+              value={agentData.knowledgeBaseName}
+              onChange={(e) =>
+                handleInputChange("knowledgeBaseName", e.target.value)
+              }
+              placeholder="e.g., Company FAQ, Product Manual"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Upload Knowledge File
+            </label>
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+              <Upload className="mx-auto h-12 w-12 text-gray-400" />
+              <div className="mt-2">
+                <label
+                  htmlFor="knowledge-file-upload"
+                  className="cursor-pointer"
+                >
+                  <span className="text-blue-600 hover:text-blue-500">
+                    Click to upload
+                  </span>
+                  <span className="text-gray-500"> or drag and drop</span>
+                </label>
+                <input
+                  id="knowledge-file-upload"
+                  type="file"
+                  className="hidden"
+                  accept=".txt,.pdf,.docx,.doc"
+                  onChange={handleFileUpload}
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                PDF, DOCX, DOC, TXT files up to 10MB
+              </p>
+            </div>
+
+            {selectedFile && (
+              <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                <div className="flex items-center">
+                  <Check className="h-4 w-4 text-green-500 mr-2" />
+                  <span className="text-sm text-green-700">
+                    File uploaded: {selectedFile.name}
+                  </span>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

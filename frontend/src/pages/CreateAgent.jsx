@@ -12,6 +12,8 @@ import {
   Mic,
   Shield,
   Check,
+  BookOpen,
+  Upload,
 } from "lucide-react";
 import { useAgents } from "../hooks/useApi";
 import toast from "react-hot-toast";
@@ -34,15 +36,21 @@ const CreateAgent = () => {
     model: "gpt-4o",
     modelProvider: "openai",
     language: "en-US",
+    knowledgeBaseName: "",
+    knowledgeBaseFile: null,
+    knowledgeBaseFileName: "",
   });
+
+  const [selectedFile, setSelectedFile] = useState(null);
 
   const steps = [
     { id: 1, name: "General", icon: Settings, completed: false },
     { id: 2, name: "Context", icon: MessageSquare, completed: false },
-    { id: 3, name: "Appearance", icon: Palette, completed: false },
-    { id: 4, name: "Personality", icon: Users, completed: false },
-    { id: 5, name: "Speech", icon: Mic, completed: false },
-    { id: 6, name: "Privacy", icon: Shield, completed: false },
+    { id: 3, name: "Knowledge", icon: BookOpen, completed: false },
+    { id: 4, name: "Appearance", icon: Palette, completed: false },
+    { id: 5, name: "Personality", icon: Users, completed: false },
+    { id: 6, name: "Speech", icon: Mic, completed: false },
+    { id: 7, name: "Privacy", icon: Shield, completed: false },
   ];
 
   const industries = [
@@ -192,6 +200,44 @@ const CreateAgent = () => {
         return openaiVoices;
       default:
         return elevenLabsVoices;
+    }
+  };
+
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Check file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("File size must be less than 10MB");
+        return;
+      }
+
+      // Check file type
+      const allowedTypes = [
+        "text/plain",
+        "application/pdf",
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "application/msword",
+      ];
+
+      if (!allowedTypes.includes(file.type)) {
+        toast.error("Only .txt, .pdf, .docx, and .doc files are allowed");
+        return;
+      }
+
+      setSelectedFile(file);
+
+      // Convert file to base64
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const base64 = e.target.result.split(",")[1]; // Remove data:type;base64, prefix
+        setAgentData((prev) => ({
+          ...prev,
+          knowledgeBaseFile: base64,
+          knowledgeBaseFileName: file.name,
+        }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -372,7 +418,75 @@ const CreateAgent = () => {
           </div>
         );
 
-      case 3: // Appearance
+      case 3: // Knowledge Base
+        return (
+          <div className="space-y-6">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Knowledge Base (Optional)
+              </label>
+              <p className="text-sm text-gray-500 mb-4">
+                Upload a file to give your agent specific knowledge about your
+                business, products, or services.
+              </p>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Knowledge Base Name
+                </label>
+                <input
+                  type="text"
+                  value={agentData.knowledgeBaseName}
+                  onChange={(e) =>
+                    handleInputChange("knowledgeBaseName", e.target.value)
+                  }
+                  placeholder="e.g., Company FAQ, Product Manual"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Upload Knowledge File
+                </label>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-gray-400 transition-colors">
+                  <Upload className="mx-auto h-12 w-12 text-gray-400" />
+                  <div className="mt-2">
+                    <label htmlFor="file-upload" className="cursor-pointer">
+                      <span className="text-blue-600 hover:text-blue-500">
+                        Click to upload
+                      </span>
+                      <span className="text-gray-500"> or drag and drop</span>
+                    </label>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      className="hidden"
+                      accept=".txt,.pdf,.docx,.doc"
+                      onChange={handleFileUpload}
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    PDF, DOCX, DOC, TXT files up to 10MB
+                  </p>
+                </div>
+
+                {selectedFile && (
+                  <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-md">
+                    <div className="flex items-center">
+                      <Check className="h-4 w-4 text-green-500 mr-2" />
+                      <span className="text-sm text-green-700">
+                        File uploaded: {selectedFile.name}
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+
+      case 4: // Appearance
         return (
           <div className="space-y-6">
             <div>
@@ -414,7 +528,7 @@ const CreateAgent = () => {
           </div>
         );
 
-      case 4: // Personality
+      case 5: // Personality
         return (
           <div className="space-y-6">
             <div>
@@ -453,7 +567,7 @@ const CreateAgent = () => {
           </div>
         );
 
-      case 5: // Speech
+      case 6: // Speech
         return (
           <div className="space-y-6">
             <div>
@@ -604,7 +718,7 @@ const CreateAgent = () => {
           </div>
         );
 
-      case 6: // Privacy
+      case 7: // Privacy
         return (
           <div className="space-y-6">
             <div>
