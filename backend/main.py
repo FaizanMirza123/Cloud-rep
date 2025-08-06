@@ -1308,22 +1308,166 @@ async def sync_user_calls_from_vapi(current_user: User, db: Session = None):
         # Fallback to local database
         return db.query(Call).filter(Call.user_id == current_user.id).all()
 
+@app.get("/debug-agents")
+async def debug_agents(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Debug endpoint to check agent VAPI IDs"""
+    agents = db.query(Agent).filter(Agent.user_id == current_user.id).all()
+    return {
+        "total_agents": len(agents),
+        "agents": [
+            {
+                "id": agent.id,
+                "name": agent.name,
+                "vapi_id": agent.vapi_id,
+                "status": agent.status,
+                "has_vapi_id": bool(agent.vapi_id)
+            }
+            for agent in agents
+        ]
+    }
+
+@app.get("/test-vapi-calls/{agent_id}")
+async def test_vapi_calls(agent_id: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Test endpoint to directly fetch calls from VAPI for debugging"""
+    try:
+        # Find the agent
+        agent = db.query(Agent).filter(and_(Agent.id == agent_id, Agent.user_id == current_user.id)).first()
+        if not agent:
+            raise HTTPException(status_code=404, detail="Agent not found")
+        
+        if not agent.vapi_id:
+            raise HTTPException(status_code=400, detail="Agent has no VAPI ID")
+        
+        # Fetch calls directly from VAPI
+        print(f"Testing VAPI call fetch for assistantId: {agent.vapi_id}")
+        vapi_calls = await call_vapi_api(f"/call?assistantId={agent.vapi_id}")
+        
+        print(f"VAPI API returned: {type(vapi_calls)}")
+        print(f"Number of calls: {len(vapi_calls) if isinstance(vapi_calls, list) else 'N/A'}")
+        
+        # Return debugging info
+        return {
+            "agent_id": agent_id,
+            "agent_name": agent.name,
+            "vapi_id": agent.vapi_id,
+            "calls_count": len(vapi_calls) if isinstance(vapi_calls, list) else 0,
+            "calls_with_transcripts": len([call for call in vapi_calls if call.get("transcript")]) if isinstance(vapi_calls, list) else 0,
+            "sample_call": vapi_calls[0] if isinstance(vapi_calls, list) and len(vapi_calls) > 0 else None,
+            "raw_response_type": str(type(vapi_calls)),
+            "calls": vapi_calls if isinstance(vapi_calls, list) else []
+        }
+        
+    except Exception as e:
+        print(f"Error in test endpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Test failed: {str(e)}")
+
 # Call routes
 @app.get("/calls")
 async def get_calls(
     agent_id: Optional[str] = None,
+    assistantId: Optional[str] = None,  # Support VAPI format
     limit: Optional[int] = None,
     current_user: User = Depends(get_current_user), 
     db: Session = Depends(get_db)
 ):
     """Get all calls for the current user with optional filtering - synced from VAPI"""
     try:
-        # Sync calls from VAPI
+        # Support both agent_id and assistantId parameters
+        filter_agent_id = agent_id or assistantId
+        
+        # If filtering by assistant/agent, try to fetch directly from VAPI for better performance
+        if filter_agent_id:
+            # Find the agent and get its VAPI ID
+            agent = db.query(Agent).filter(and_(Agent.id == filter_agent_id, Agent.user_id == current_user.id)).first()
+            if not agent:
+                print(f"No agent found with ID: {filter_agent_id}")
+                return []
+            
+            print(f"Found agent: {agent.name}, VAPI ID: {agent.vapi_id}")
+            
+            if agent and agent.vapi_id:
+                try:
+                    # Fetch calls directly from VAPI for this assistant
+                    print(f"Fetching calls from VAPI for assistantId: {agent.vapi_id}")
+                    vapi_calls = await call_vapi_api(f"/call?assistantId={agent.vapi_id}")
+                    print(f"VAPI returned {len(vapi_calls) if isinstance(vapi_calls, list) else 'non-list'} calls")
+                    
+                    # Ensure vapi_calls is a list
+                    if not isinstance(vapi_calls, list):
+                        print(f"VAPI returned non-list response: {type(vapi_calls)}")
+                        vapi_calls = []
+                    
+                    # Convert VAPI calls to our format and sync to database
+                    filtered_calls = []
+                    for i, vapi_call in enumerate(vapi_calls):
+                        print(f"Processing call {i+1}: ID={vapi_call.get('id')}, Status={vapi_call.get('status')}, Has transcript={bool(vapi_call.get('transcript'))}")
+                        
+                        # Check if we have this call in local database
+                        local_call = db.query(Call).filter(Call.vapi_id == vapi_call.get("id")).first()
+                        
+                        if not local_call:
+                            # Create new call record
+                            call_id = str(uuid.uuid4())
+                            local_call = Call(
+                                id=call_id,
+                                vapi_id=vapi_call.get("id"),
+                                user_id=current_user.id,
+                                agent_id=agent.id,
+                                phone_number=vapi_call.get("phoneNumber", {}).get("number") if vapi_call.get("phoneNumber") else None,
+                                customer_number=vapi_call.get("customer", {}).get("number") if vapi_call.get("customer") else None,
+                                direction=vapi_call.get("type", "unknown"),
+                                status=vapi_call.get("status"),
+                                duration=vapi_call.get("duration"),
+                                cost=vapi_call.get("cost"),
+                                recording_url=vapi_call.get("recordingUrl"),
+                                transcript=vapi_call.get("transcript"),
+                                ended_reason=vapi_call.get("endedReason"),
+                                started_at=datetime.fromisoformat(vapi_call.get("startedAt").replace('Z', '+00:00')) if vapi_call.get("startedAt") else None,
+                                ended_at=datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00')) if vapi_call.get("endedAt") else None,
+                                created_at=datetime.fromisoformat(vapi_call.get("createdAt").replace('Z', '+00:00')) if vapi_call.get("createdAt") else datetime.utcnow(),
+                                updated_at=datetime.fromisoformat(vapi_call.get("updatedAt").replace('Z', '+00:00')) if vapi_call.get("updatedAt") else datetime.utcnow()
+                            )
+                            db.add(local_call)
+                            print(f"Created new call record for VAPI call {vapi_call.get('id')}")
+                        else:
+                            # Update existing call with latest VAPI data
+                            local_call.status = vapi_call.get("status", local_call.status)
+                            local_call.duration = vapi_call.get("duration", local_call.duration)
+                            local_call.cost = vapi_call.get("cost", local_call.cost)
+                            local_call.recording_url = vapi_call.get("recordingUrl", local_call.recording_url)
+                            local_call.transcript = vapi_call.get("transcript", local_call.transcript)
+                            local_call.ended_reason = vapi_call.get("endedReason", local_call.ended_reason)
+                            if vapi_call.get("endedAt") and not local_call.ended_at:
+                                local_call.ended_at = datetime.fromisoformat(vapi_call.get("endedAt").replace('Z', '+00:00'))
+                            local_call.updated_at = datetime.utcnow()
+                            print(f"Updated existing call record for VAPI call {vapi_call.get('id')}")
+                        
+                        filtered_calls.append(local_call)
+                    
+                    db.commit()
+                    print(f"Successfully processed {len(filtered_calls)} calls from VAPI")
+                    
+                    # Sort by created_at descending
+                    filtered_calls.sort(key=lambda x: x.created_at or datetime.min, reverse=True)
+                    
+                    # Apply limit if provided
+                    if limit:
+                        filtered_calls = filtered_calls[:limit]
+                    
+                    return filtered_calls
+                    
+                except Exception as vapi_error:
+                    print(f"VAPI direct fetch failed for agent {filter_agent_id}: {str(vapi_error)}")
+                    print(f"Agent VAPI ID: {agent.vapi_id if agent else 'N/A'}")
+                    print("Falling back to sync method...")
+                    # Don't raise the error, fall back to general sync method
+        
+        # Fallback to general sync method
         calls = await sync_user_calls_from_vapi(current_user, db)
         
         # Apply agent filter if provided
-        if agent_id:
-            calls = [call for call in calls if call.agent_id == agent_id]
+        if filter_agent_id:
+            calls = [call for call in calls if call.agent_id == filter_agent_id]
         
         # Sort by created_at descending
         calls.sort(key=lambda x: x.created_at or datetime.min, reverse=True)
@@ -1338,8 +1482,9 @@ async def get_calls(
         print(f"Error fetching calls: {str(e)}")
         # Fallback to local database only
         query = db.query(Call).filter(Call.user_id == current_user.id)
-        if agent_id:
-            query = query.filter(Call.agent_id == agent_id)
+        filter_agent_id = agent_id or assistantId
+        if filter_agent_id:
+            query = query.filter(Call.agent_id == filter_agent_id)
         query = query.order_by(desc(Call.created_at))
         if limit:
             query = query.limit(limit)
