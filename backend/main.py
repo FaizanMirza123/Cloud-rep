@@ -345,38 +345,99 @@ async def create_knowledge_base(name: str, file_content: str, file_name: str):
             temp_file_path = temp_file.name
         
         try:
-            # For VAPI provider, we create a simple knowledge base and upload the file
-            kb_payload = {
-                "name": name,
-                "provider": "vapi"  # Using vapi provider for direct file upload
-            }
+            # Step 1: Upload file to VAPI first
+            print(f"Step 1: Uploading file {file_name} to VAPI")
             
-            # Create the knowledge base first
-            kb_response = await call_vapi_api("/knowledge-base", method="POST", data=kb_payload)
-            kb_id = kb_response.get("id")
+            # Determine proper MIME type based on file extension
+            def get_mime_type(filename):
+                """Get proper MIME type for VAPI file upload"""
+                ext = filename.lower().split('.')[-1] if '.' in filename else ''
+                mime_types = {
+                    'txt': 'text/plain',
+                    'md': 'text/markdown', 
+                    'markdown': 'text/markdown',
+                    'pdf': 'application/pdf',
+                    'csv': 'text/csv',
+                    'tsv': 'text/tab-separated-values',
+                    'log': 'text/x-log',
+                    'js': 'text/javascript',
+                    'css': 'text/css',
+                    'html': 'text/html',
+                    'htm': 'text/html',
+                    'xml': 'application/xml',
+                    'json': 'application/json',
+                    'yaml': 'application/x-yaml',
+                    'yml': 'application/x-yaml',
+                    'doc': 'application/msword',
+                    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                    'ts': 'application/typescript'
+                }
+                return mime_types.get(ext, 'text/plain')  # Default to text/plain
             
-            if not kb_id:
-                raise HTTPException(status_code=500, detail="Failed to create knowledge base")
+            mime_type = get_mime_type(file_name)
+            print(f"Using MIME type: {mime_type} for file: {file_name}")
             
-            # Upload file to the knowledge base using multipart form data
             async with httpx.AsyncClient() as client:
                 headers = {
                     "Authorization": f"Bearer {VAPI_API_KEY}",
                 }
                 
                 with open(temp_file_path, 'rb') as f:
-                    files = {'file': (file_name, f, 'application/octet-stream')}
-                    upload_url = f"{VAPI_BASE_URL}/knowledge-base/{kb_id}/files"
+                    files = {'file': (file_name, f, mime_type)}
+                    upload_url = f"{VAPI_BASE_URL}/file"
                     
+                    print(f"VAPI File Upload: POST {upload_url}")
                     upload_response = await client.post(
                         upload_url,
                         headers=headers,
                         files=files
                     )
                     
+                    print(f"File Upload Response Status: {upload_response.status_code}")
+                    
                     if upload_response.status_code >= 400:
-                        print(f"File upload warning: {upload_response.text}")
-                        # Continue even if file upload fails - KB can be populated manually
+                        print(f"File upload error: {upload_response.text}")
+                        raise HTTPException(status_code=500, detail="Failed to upload file to VAPI")
+                    
+                    file_response = upload_response.json()
+                    file_id = file_response.get("id")
+                    
+                    if not file_id:
+                        raise HTTPException(status_code=500, detail="Failed to get file ID from upload")
+                    
+                    print(f"File uploaded successfully with ID: {file_id}")
+            
+            # Step 2: Create knowledge base with the uploaded file
+            print(f"Step 2: Creating knowledge base '{name}' with file ID: {file_id}")
+            
+            kb_payload = {
+                "name": name,
+                "provider": "trieve",
+                "searchPlan": {
+                    "searchType": "semantic",
+                    "topK": 3,
+                    "removeStopWords": True,
+                    "scoreThreshold": 0.7
+                },
+                "createPlan": {
+                    "type": "create",
+                    "chunkPlans": [
+                        {
+                            "fileIds": [file_id],
+                            "targetSplitsPerChunk": 50,
+                            "splitDelimiters": [".!?\n"],
+                            "rebalanceChunks": True
+                        }
+                    ]
+                }
+            }
+            
+            print(f"VAPI Knowledge Base API Call: POST {VAPI_BASE_URL}/knowledge-base")
+            print(f"VAPI Knowledge Base Payload: {kb_payload}")
+            
+            # Create the knowledge base
+            kb_response = await call_vapi_api("/knowledge-base", method="POST", data=kb_payload)
+            print(f"VAPI Knowledge Base Response: {kb_response}")
             
             return kb_response
             
@@ -387,6 +448,8 @@ async def create_knowledge_base(name: str, file_content: str, file_name: str):
     
     except Exception as e:
         print(f"Knowledge base creation error: {str(e)}")
+        import traceback
+        print(f"Knowledge base creation traceback: {traceback.format_exc()}")
         # Instead of raising exception, return None and let agent creation continue
         return None
 
